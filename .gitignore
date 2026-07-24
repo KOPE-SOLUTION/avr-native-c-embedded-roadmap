@@ -1,0 +1,17 @@
+# Build outputs
+/build/
+*.elf
+*.hex
+*.map
+*.o
+
+# Local MPLAB X generated state (source is kept separately)
+nbproject/private/
+build/
+dist/
+
+# Editor and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
