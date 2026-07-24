@@ -1,103 +1,101 @@
 # AVR Native C Embedded Roadmap
 
-The native AVR C companion to the
-[Arduino Uno Embedded Roadmap](https://github.com/KOPE-SOLUTION/arduino-uno-embedded-roadmap),
-using ATmega328P registers and peripherals directly.
+Repository คู่ขนานแบบ Native AVR C ของ
+[Arduino Uno Embedded Roadmap](https://github.com/KOPE-SOLUTION/arduino-uno-embedded-roadmap)
+โดยควบคุม Register และ Peripheral ของ ATmega328P โดยตรง
 
-This series keeps the original EP01-EP08 learning order while replacing the
-Arduino API with register-level C. It exposes how GPIO, USART, timers,
-interrupts, PWM, ADC, SPI, and I2C/TWI work inside the microcontroller.
+ซีรีส์นี้คงลำดับการเรียน EP01-EP08 เดิม แต่เปลี่ยนจาก Arduino API มาเป็น
+Register-Level C เพื่อให้เห็นการทำงานภายในของ GPIO, USART, Timer,
+Interrupt, PWM, ADC, SPI และ I2C/TWI
 
 ```c
-/* Arduino framework */
+/* Arduino Framework */
 digitalWrite(13, HIGH);
 
 /* Native AVR C */
 PORTB |= (1U << PORTB5);
 ```
 
-## Scope
+## ขอบเขตของ Repository
 
-| Item | Selection |
+| รายการ | สิ่งที่เลือกใช้ |
 | --- | --- |
-| Target MCU | ATmega328P |
-| Reference board | Arduino Uno R3 (16 MHz) |
-| Language | C |
-| Framework | None |
-| Programming level | Register-level |
-| Guided IDE/compiler | MPLAB X IDE + MPLAB XC8 |
-| Official lightweight IDE | MPLAB for VS Code + MPLAB XC8 |
-| Portable toolchain | avr-gcc + avr-libc + Make + avrdude |
+| MCU เป้าหมาย | ATmega328P |
+| บอร์ดอ้างอิง | Arduino Uno R3 ความถี่ 16 MHz |
+| ภาษา | C |
+| Framework | ไม่มี |
+| ระดับการเขียนโปรแกรม | Register-Level |
+| IDE/Compiler สำหรับบทเรียนหลัก | MPLAB X IDE + MPLAB XC8 |
+| IDE แบบเบาจากผู้ผลิต | MPLAB for VS Code + MPLAB XC8 |
+| Toolchain แบบ Command Line | avr-gcc + avr-libc + Make + avrdude |
 
-`<avr/io.h>` provides register names for the selected MCU; it is not the
-Arduino framework. Every example has its own `main()` and can be studied or
-built independently.
+`<avr/io.h>` ทำหน้าที่ประกาศชื่อ Register ของ MCU ที่เลือก ไม่ใช่ Arduino
+Framework ทุกตัวอย่างมี `main()` ของตัวเอง และสามารถศึกษา/Build แยกกันได้
 
-> **Learning target:** Microchip currently marks the ATmega328P as
-> "Not Recommended for new designs." It remains the correct target here
-> because the goal is to compare native C directly with the established
-> Arduino Uno series. For a new production design, evaluate a current AVR
-> family separately.
+> **หมายเหตุเรื่อง MCU:** Microchip ระบุสถานะ ATmega328P ว่า
+> "Not Recommended for new designs" แต่ MCU รุ่นนี้ยังเหมาะกับ Repository นี้
+> เพราะเป้าหมายคือเปรียบเทียบ Native C กับ Arduino Uno Series เดิมโดยตรง
+> สำหรับผลิตภัณฑ์ใหม่ควรประเมิน AVR Family รุ่นปัจจุบันแยกต่างหาก
 
-## Roadmap
+## Roadmap การเรียนรู้
 
-| EP | Topic | Arduino layer | Native registers | Example |
+| EP | หัวข้อ | ระดับ Arduino | Register สำคัญ | ตัวอย่าง |
 | --- | --- | --- | --- | --- |
-| 01 | [GPIO](EP01_GPIO/README.md) | `pinMode`, `digitalRead`, `digitalWrite` | `DDRx`, `PORTx`, `PINx` | Button controls LED |
-| 02 | [UART](EP02_UART/README.md) | `Serial` | `UBRR0`, `UCSR0x`, `UDR0` | Text command console |
-| 03 | [Timer](EP03_TIMER/README.md) | `millis` | `TCCR1x`, `TCNT1`, `OCR1A`, `TIFR1` | Non-blocking LED blink |
-| 04 | [Interrupt](EP04_INTERRUPT/README.md) | `attachInterrupt` | `EICRA`, `EIMSK`, `EIFR`, ISR | Button event |
-| 05 | [PWM](EP05_PWM/README.md) | `analogWrite` | `TCCR1x`, `OCR1A` | LED fade on D9 |
-| 06 | [ADC](EP06_ADC/README.md) | `analogRead` | `ADMUX`, `ADCSRA`, `ADC` | Potentiometer to PWM |
-| 07 | [SPI](EP07_SPI/README.md) | `SPI`, `SD` | `SPCR`, `SPSR`, `SPDR` | Raw SD-card handshake |
-| 08 | [I2C/TWI](EP08_I2C/README.md) | `Wire` | `TWBR`, `TWSR`, `TWCR`, `TWDR` | I2C address scanner |
+| 01 | [GPIO](EP01_GPIO/README.md) | `pinMode`, `digitalRead`, `digitalWrite` | `DDRx`, `PORTx`, `PINx` | ปุ่มควบคุม LED |
+| 02 | [UART](EP02_UART/README.md) | `Serial` | `UBRR0`, `UCSR0x`, `UDR0` | Console รับคำสั่งข้อความ |
+| 03 | [Timer](EP03_TIMER/README.md) | `millis` | `TCCR1x`, `TCNT1`, `OCR1A`, `TIFR1` | LED กระพริบแบบ Non-blocking |
+| 04 | [Interrupt](EP04_INTERRUPT/README.md) | `attachInterrupt` | `EICRA`, `EIMSK`, `EIFR`, ISR | Event จากปุ่ม |
+| 05 | [PWM](EP05_PWM/README.md) | `analogWrite` | `TCCR1x`, `OCR1A` | Fade LED ที่ D9 |
+| 06 | [ADC](EP06_ADC/README.md) | `analogRead` | `ADMUX`, `ADCSRA`, `ADC` | Potentiometer ควบคุม PWM |
+| 07 | [SPI](EP07_SPI/README.md) | `SPI`, `SD` | `SPCR`, `SPSR`, `SPDR` | Raw SD Card Handshake |
+| 08 | [I2C/TWI](EP08_I2C/README.md) | `Wire` | `TWBR`, `TWSR`, `TWCR`, `TWDR` | I2C Address Scanner |
 
-The SPI episode deliberately stops below the FAT filesystem layer. It shows the
-native SPI transaction and the first SD command so the boundary between the bus
-driver, SD protocol, and filesystem is explicit.
+EP07 จงใจหยุดก่อนชั้น FAT Filesystem เพื่อให้เห็น Native SPI Transaction
+และ SD Command แรกอย่างชัดเจน รวมถึงแยกขอบเขตระหว่าง Bus Driver,
+SD Protocol และ Filesystem
 
-## Choose a build path
+## เลือกเส้นทางการพัฒนา
 
-### MPLAB X IDE + XC8 (recommended first path)
+### MPLAB X IDE + XC8 (แนะนำสำหรับเริ่มซีรีส์)
 
-Create one MPLAB X standalone project per episode and add that episode's
-`src/main.c`. Select `ATmega328P` and the XC8 compiler. Full steps and the
-difference between an ICSP programmer and the Uno USB bootloader are in
-[Toolchain setup](docs/toolchain-setup.md).
+สร้าง MPLAB X Standalone Project แยกหนึ่ง Project ต่อหนึ่ง EP แล้วเพิ่มไฟล์
+`src/main.c` ของตอนนั้น เลือก Device เป็น `ATmega328P` และ Compiler เป็น
+XC8 ดูขั้นตอนและความแตกต่างระหว่าง ICSP Programmer กับ Uno USB Bootloader
+ได้ใน [คู่มือติดตั้ง Toolchain](docs/toolchain-setup.md)
 
-Generated MPLAB project metadata is intentionally not committed. The source
-stays readable and reusable outside one IDE.
+Repository นี้จงใจไม่เก็บ Metadata ของ MPLAB Project ที่สร้างอัตโนมัติ
+เพื่อให้ซอร์สอ่านง่ายและนำไปใช้กับ Toolchain อื่นได้
 
-Microchip also supports XC8 through
-[MPLAB for VS Code](https://www.microchip.com/en-us/tools-resources/develop/mplab-tools-vs-code).
-It is a good lightweight option for learners already comfortable with VS Code;
-the register-level source in this repository stays the same.
+Microchip รองรับ XC8 ผ่าน
+[MPLAB for VS Code](https://www.microchip.com/en-us/tools-resources/develop/mplab-tools-vs-code)
+ด้วย เหมาะสำหรับผู้เรียนที่คุ้นเคยกับ VS Code และต้องการ IDE ที่เบากว่า
+โดยซอร์สแบบ Register-Level ใน Repository นี้ไม่ต้องเปลี่ยน
 
 ### avr-gcc + Make + avrdude
 
-Build all episodes:
+Build ทุก EP:
 
 ```sh
 make all
 ```
 
-On Windows, if GNU Make is named `mingw32-make`:
+บน Windows หาก GNU Make ใช้ชื่อ `mingw32-make`:
 
 ```powershell
 mingw32-make all
 ```
 
-Build or flash one episode:
+Build หรือ Flash เฉพาะ EP:
 
 ```sh
 make build-selected EP=EP01_GPIO
 make flash EP=EP01_GPIO PORT=COM3
 ```
 
-Change `PORT` for your system. See [Flashing guide](docs/flashing-guide.md)
-before programming hardware.
+เปลี่ยน `PORT` ให้ตรงกับระบบของคุณ และอ่าน
+[คู่มือการ Flash](docs/flashing-guide.md) ก่อน Program ฮาร์ดแวร์
 
-## Repository layout
+## โครงสร้าง Repository
 
 ```text
 avr-native-c-embedded-roadmap/
@@ -115,25 +113,25 @@ avr-native-c-embedded-roadmap/
 `-- ... EP02_UART through EP08_I2C
 ```
 
-## Hardware assumptions
+## ข้อตกลงเกี่ยวกับฮาร์ดแวร์
 
-- Arduino Uno R3 runs the ATmega328P at 16 MHz.
-- Existing Uno clock and bootloader fuses are left unchanged.
-- D0/D1 are shared with the board's USB-to-serial interface.
-- I2C devices need pull-up resistors on SDA and SCL; many modules include them.
-- A bare microSD card is a 3.3 V device. Use a module or level conversion that
-  is electrically safe for a 5 V Uno.
+- Arduino Uno R3 ใช้ ATmega328P ที่ความถี่ 16 MHz
+- ตัวอย่างไม่เปลี่ยน Clock Fuse หรือ Bootloader Fuse เดิมของ Uno
+- D0/D1 ใช้ร่วมกับวงจร USB-to-Serial บนบอร์ด
+- อุปกรณ์ I2C ต้องมี Pull-up ที่ SDA และ SCL โดย Module หลายรุ่นมีมาให้แล้ว
+- MicroSD Card เปล่าใช้ไฟ 3.3 V ต้องใช้ Module หรือ Level Conversion ที่
+  ปลอดภัยกับ Logic 5 V ของ Uno
 
-Before rewiring, disconnect power. Always join the grounds of devices that
-communicate with each other.
+ถอดแหล่งจ่ายไฟก่อนเปลี่ยนการต่อวงจร และเชื่อม GND ของอุปกรณ์ที่สื่อสารกัน
+เข้าด้วยกันเสมอ
 
-## Reference documents
+## เอกสารอ้างอิง
 
-- [ATmega328P product page and datasheet](https://www.microchip.com/en-us/product/atmega328p)
+- [หน้าผลิตภัณฑ์และ Datasheet ของ ATmega328P](https://www.microchip.com/en-us/product/atmega328p)
 - [MPLAB X IDE](https://www.microchip.com/en-us/tools-resources/develop/mplab-x-ide)
-- [MPLAB XC8 compiler](https://www.microchip.com/en-us/tools-resources/develop/mplab-x-compilers/xc8)
-- [Arduino Uno R3 documentation](https://docs.arduino.cc/hardware/uno-rev3/)
+- [MPLAB XC8 Compiler](https://www.microchip.com/en-us/tools-resources/develop/mplab-x-compilers/xc8)
+- [เอกสาร Arduino Uno R3](https://docs.arduino.cc/hardware/uno-rev3/)
 
-## License
+## สิทธิ์ใช้งาน (License)
 
-[MIT](LICENSE)
+ใช้ [MIT License](LICENSE)

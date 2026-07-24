@@ -1,22 +1,22 @@
-# EP03 - Timer Basics
+# EP03 - พื้นฐาน Timer
 
-Create a 1 ms hardware timebase with Timer1 and blink the onboard LED without
-`delay()`, `millis()`, or an interrupt.
+สร้าง Timebase 1 ms ด้วย Timer1 และทำให้ LED บนบอร์ดกระพริบโดยไม่ใช้
+`delay()`, `millis()` หรือ Interrupt
 
-## Why polling first?
+## ทำไมเริ่มจาก Polling
 
-EP03 isolates the timer peripheral. The CPU polls the compare flag while the
-hardware timer counts independently. EP04 then introduces interrupt-driven
-events as a separate concept.
+EP03 แยกการเรียน Timer Peripheral ออกจาก Interrupt โดย CPU จะ Poll
+Compare Flag ขณะที่ Hardware Timer นับเวลาอย่างอิสระ จากนั้น EP04 จึงเพิ่ม
+แนวคิด Event แบบ Interrupt
 
-## Timer1 setup
+## การตั้งค่า Timer1
 
 - Mode: CTC (Clear Timer on Compare Match)
-- Clock: 16 MHz
+- CPU Clock: 16 MHz
 - Prescaler: 64
-- Tick frequency: 250 kHz
-- `OCR1A`: 249
-- Compare period: 1 ms
+- Timer Tick Frequency: 250 kHz
+- ค่า `OCR1A`: 249
+- Compare Period: 1 ms
 
 ```text
 OCR1A = F_CPU / prescaler / target_frequency - 1
@@ -24,25 +24,25 @@ OCR1A = F_CPU / prescaler / target_frequency - 1
       = 249
 ```
 
-## Registers
+## Register สำคัญ
 
-| Register | Role |
+| Register | หน้าที่ |
 | --- | --- |
-| `TCCR1A/B` | Waveform mode and clock prescaler |
-| `TCNT1` | Current counter value |
-| `OCR1A` | Compare value |
-| `TIFR1` | Compare-match flag (`OCF1A`) |
+| `TCCR1A/B` | กำหนด Waveform Mode และ Clock Prescaler |
+| `TCNT1` | ค่า Counter ปัจจุบัน |
+| `OCR1A` | ค่า Compare |
+| `TIFR1` | Compare-match Flag (`OCF1A`) |
 
-`OCF1A` is a write-one-to-clear flag. The source clears it by writing a one.
+`OCF1A` เป็น Flag แบบ Write-one-to-clear ซอร์สจึงล้าง Flag ด้วยการเขียน 1
 
-## Expected behavior
+## ผลลัพธ์ที่คาดหวัง
 
-[src/main.c](src/main.c) accumulates 1,000 compare events and toggles D13 once
-per second. The main loop never busy-waits for a one-second delay, so other
-polling tasks could be added.
+[src/main.c](src/main.c) สะสม Compare Event จำนวน 1,000 ครั้งแล้ว Toggle D13
+หนึ่งครั้งต่อวินาที Main Loop ไม่ Busy-wait เป็นเวลาหนึ่งวินาที จึงสามารถเพิ่ม
+งาน Polling อื่นใน Loop ได้
 
 ```sh
 make build-selected EP=EP03_TIMER
 ```
 
-Next: [EP04 - Interrupt](../EP04_INTERRUPT/README.md)
+ตอนถัดไป: [EP04 - Interrupt](../EP04_INTERRUPT/README.md)

@@ -1,64 +1,62 @@
-# Toolchain Setup
+# การติดตั้งและเลือกใช้ Toolchain
 
-The source is independent of one IDE and intentionally supports two paths.
+ซอร์สใน Repository นี้ไม่ผูกกับ IDE เดียว และรองรับสองเส้นทางหลัก
 
-## Path A - MPLAB X IDE + MPLAB XC8
+## เส้นทาง A - MPLAB X IDE + MPLAB XC8
 
-This is the recommended first path for the series. The IDE manages the target
-device, compiler, build configuration, and Microchip debug/program tools.
+เส้นทางนี้แนะนำสำหรับเริ่มซีรีส์ เพราะ IDE ช่วยจัดการ Device, Compiler,
+Build Configuration และเครื่องมือ Debug/Program ของ Microchip
 
-### Install
+### การติดตั้ง
 
-1. Install [MPLAB X IDE](https://www.microchip.com/en-us/tools-resources/develop/mplab-x-ide).
-2. Install [MPLAB XC8](https://www.microchip.com/en-us/tools-resources/develop/mplab-x-compilers/xc8)
-   separately. XC8 supports 8-bit AVR targets.
-3. In MPLAB X, confirm XC8 appears under **Tools > Options > Embedded >
-   Build Tools**.
+1. ติดตั้ง [MPLAB X IDE](https://www.microchip.com/en-us/tools-resources/develop/mplab-x-ide)
+2. ติดตั้ง [MPLAB XC8](https://www.microchip.com/en-us/tools-resources/develop/mplab-x-compilers/xc8)
+   แยกต่างหาก โดย XC8 รองรับ MCU ตระกูล AVR 8-bit
+3. ใน MPLAB X ตรวจสอบว่า XC8 ปรากฏที่ **Tools > Options > Embedded >
+   Build Tools**
 
-### Create an episode project
+### การสร้าง Project ของแต่ละ EP
 
-1. Select **File > New Project > Microchip Embedded > Standalone Project**.
-2. Select device **ATmega328P**.
-3. Select a hardware tool or **Simulator**.
-4. Select the installed **XC8** compiler.
-5. Name the project after the episode, for example `EP01_GPIO`.
-6. Add `EP01_GPIO/src/main.c` to **Source Files**.
-7. Build the project.
+1. เลือก **File > New Project > Microchip Embedded > Standalone Project**
+2. เลือก Device เป็น **ATmega328P**
+3. เลือก Hardware Tool หรือ **Simulator**
+4. เลือก Compiler **XC8** ที่ติดตั้งไว้
+5. ตั้งชื่อ Project ตาม EP เช่น `EP01_GPIO`
+6. เพิ่ม `EP01_GPIO/src/main.c` เข้า **Source Files**
+7. Build Project
 
-The examples include `<avr/io.h>`, which XC8 accepts for AVR targets. It maps
-register and bit names to the selected MCU. MPLAB projects often use `<xc.h>`;
-XC8's `<xc.h>` includes the AVR device definitions, but `<avr/io.h>` keeps the
-same source compatible with avr-gcc.
+ตัวอย่างใช้ `<avr/io.h>` ซึ่ง XC8 รองรับเมื่อ Target เป็น AVR Header นี้เชื่อม
+ชื่อ Register และ bit กับ MCU ที่เลือก MPLAB Project มักใช้ `<xc.h>` เป็น
+Top-level Header โดย `<xc.h>` จะ Include Device Definition ของ AVR อีกที
+การใช้ `<avr/io.h>` ช่วยให้ซอร์สเดียวกัน Build ด้วย avr-gcc ได้ด้วย
 
-### Program/debug from MPLAB X
+### Program และ Debug จาก MPLAB X
 
-The Uno USB connector talks to the bootloader through a USB-to-serial device;
-it is not a native MPLAB debug connection. To use **Make and Program Device**
-inside MPLAB X, connect a programmer/debugger that MPLAB X lists as compatible
-with ATmega328P to the Uno ICSP header.
+ช่อง USB ของ Uno ติดต่อ Bootloader ผ่าน USB-to-Serial ไม่ใช่ Native MPLAB
+Debug Connection หากต้องการใช้ **Make and Program Device** ใน MPLAB X
+ต้องต่อ Programmer/Debugger ที่ MPLAB X ระบุว่ารองรับ ATmega328P เข้ากับ
+ICSP Header ของ Uno
 
-Do not change clock, reset, or boot fuses as part of these lessons. Programming
-through ISP can erase the Uno bootloader depending on the operation and tool
-settings.
+บทเรียนเหล่านี้ไม่เปลี่ยน Clock, Reset หรือ Boot Fuse การ Program ผ่าน ISP
+อาจลบ Uno Bootloader ได้ ขึ้นอยู่กับ Operation และ Tool Setting
 
-If you only have the Uno and a USB cable, use Path B to flash through the
-existing bootloader.
+หากมีเพียง Uno และสาย USB ให้ใช้เส้นทาง B เพื่อ Flash ผ่าน Bootloader เดิม
 
-## Path A2 - MPLAB for VS Code + MPLAB XC8
+## เส้นทาง A2 - MPLAB for VS Code + MPLAB XC8
 
-Microchip also provides
-[MPLAB for VS Code](https://www.microchip.com/en-us/tools-resources/develop/mplab-tools-vs-code).
-It supports MPLAB projects, XC8, programming, and basic debugging in a lighter
-editor. Choose it when VS Code is already familiar or when you prefer its
-editing and source-control workflow.
+Microchip มี
+[MPLAB for VS Code](https://www.microchip.com/en-us/tools-resources/develop/mplab-tools-vs-code)
+ซึ่งรองรับ MPLAB Project, XC8, การ Program และ Basic Debugging ใน Editor
+ที่เบากว่า เหมาะเมื่อคุ้นเคยกับ VS Code หรือต้องการ Workflow ด้าน Source
+Control ของ VS Code
 
-This is still a manufacturer-supported native path. The compiler and register-
-level source are the same; only the development environment changes. For a
-first video series, MPLAB X remains easier to present as one consistent GUI.
+เส้นทางนี้ยังเป็น Native Toolchain จากผู้ผลิต Compiler และซอร์สแบบ
+Register-Level เหมือนเดิม เปลี่ยนเฉพาะ Development Environment สำหรับ
+วิดีโอชุดแรก MPLAB X ยังนำเสนอเป็น GUI เดียวกันได้ง่ายกว่า
 
-## Path B - avr-gcc + Make + avrdude
+## เส้นทาง B - avr-gcc + Make + avrdude
 
-Install or place these tools on `PATH`:
+ติดตั้งหรือเพิ่ม Tool เหล่านี้ใน `PATH`:
 
 - `avr-gcc`
 - `avr-objcopy`
@@ -66,45 +64,46 @@ Install or place these tools on `PATH`:
 - GNU Make
 - `avrdude`
 
-Build all episodes:
+Build ทุก EP:
 
 ```sh
 make all
 ```
 
-On Windows the Make executable may be named `mingw32-make`:
+บน Windows โปรแกรม Make อาจใช้ชื่อ `mingw32-make`:
 
 ```powershell
 mingw32-make all
 ```
 
-Build one episode:
+Build เฉพาะ EP:
 
 ```sh
 make build-selected EP=EP03_TIMER
 ```
 
-The Makefile defines:
+ค่าเริ่มต้นใน Makefile:
 
 - MCU: `atmega328p`
-- CPU clock: `16000000UL`
-- optimization: `-Os`
-- warnings: `-Wall -Wextra -Werror`
+- CPU Clock: `16000000UL`
+- Optimization: `-Os`
+- Warning: `-Wall -Wextra -Werror`
 
-Override a tool path without changing the file:
+สามารถระบุ Path ของ Tool โดยไม่แก้ Makefile:
 
 ```powershell
 mingw32-make all AVR_CC="C:\path\to\avr-gcc.exe" AVR_OBJCOPY="C:\path\to\avr-objcopy.exe"
 ```
 
-## What "native" means here
+## คำว่า Native ใน Repository นี้หมายถึงอะไร
 
-- No Arduino core startup
-- No `setup()` or `loop()`
-- No Arduino API or C++ `String`
-- No Arduino peripheral libraries
-- Direct register configuration based on the ATmega328P datasheet
-- Standard compiler headers are allowed because they name registers and vectors
+- ไม่ใช้ Arduino Core Startup
+- ไม่มี `setup()` หรือ `loop()`
+- ไม่ใช้ Arduino API หรือ C++ `String`
+- ไม่ใช้ Arduino Peripheral Library
+- ตั้งค่า Hardware จาก ATmega328P Datasheet โดยตรง
+- ใช้ Compiler Header มาตรฐานได้ เพราะ Header ทำหน้าที่ประกาศชื่อ Register
+  และ Interrupt Vector
 
-The C runtime still initializes memory and calls `main()`. "Native" does not
-mean writing the reset vector and startup assembly from scratch.
+C Runtime ยังคงเตรียม Memory และเรียก `main()` คำว่า Native ในที่นี้
+ไม่ได้หมายถึงการเขียน Reset Vector และ Startup Assembly ใหม่ทั้งหมด

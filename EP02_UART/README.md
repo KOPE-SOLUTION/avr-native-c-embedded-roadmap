@@ -1,9 +1,9 @@
-# EP02 - UART Serial Communication
+# EP02 - การสื่อสาร UART Serial
 
-Configure USART0 directly and build a small command console without Arduino
-`Serial` or the C++ `String` class.
+ตั้งค่า USART0 โดยตรงและสร้าง Command Console ขนาดเล็ก โดยไม่ใช้ Arduino
+`Serial` หรือ C++ `String`
 
-## Configuration
+## การตั้งค่า
 
 ```text
 Baud:      9600
@@ -13,29 +13,30 @@ Stop bits: 1
 Mode:      asynchronous, normal speed
 ```
 
-At 16 MHz, `UBRR0 = 103` gives approximately 9600 baud.
+เมื่อ CPU Clock เท่ากับ 16 MHz ค่า `UBRR0 = 103` จะให้อัตรา Baud ประมาณ
+9600 baud
 
-## Registers
+## Register สำคัญ
 
-| Register | Role |
+| Register | หน้าที่ |
 | --- | --- |
-| `UBRR0H/L` | Baud-rate divider |
-| `UCSR0A` | TX/RX status flags |
-| `UCSR0B` | Enable transmitter and receiver |
-| `UCSR0C` | 8N1 frame format |
-| `UDR0` | Transmit/receive data byte |
+| `UBRR0H/L` | กำหนด Baud-rate Divider |
+| `UCSR0A` | Status Flag ของ TX/RX |
+| `UCSR0B` | เปิดใช้งาน Transmitter และ Receiver |
+| `UCSR0C` | กำหนด Frame Format แบบ 8N1 |
+| `UDR0` | Register สำหรับส่งและรับข้อมูลหนึ่ง byte |
 
-## Hardware
+## ฮาร์ดแวร์
 
-Use the Uno USB connection. USART0 uses D0/RX and D1/TX, which are already
-connected to the board's USB-to-serial circuit.
+ใช้การเชื่อมต่อ USB ของ Uno โดย USART0 ใช้ D0/RX และ D1/TX ซึ่งเชื่อมกับ
+วงจร USB-to-Serial บนบอร์ดอยู่แล้ว
 
-## Test
+## วิธีทดสอบ
 
-1. Flash [src/main.c](src/main.c).
-2. Open a serial terminal at 9600 baud.
-3. Select a line ending that sends LF (`\n`) or CRLF.
-4. Send one of these commands:
+1. Flash [src/main.c](src/main.c)
+2. เปิด Serial Terminal ที่ 9600 baud
+3. เลือก Line Ending ให้ส่ง LF (`\n`) หรือ CRLF
+4. ส่งคำสั่งต่อไปนี้:
 
 ```text
 LED ON
@@ -43,21 +44,21 @@ LED OFF
 STATUS?
 ```
 
-The parser uses a fixed 16-byte buffer, rejects overflow, and performs no
-dynamic memory allocation.
+Parser ใช้ Buffer ขนาดคงที่ 16 byte ปฏิเสธข้อมูลที่ยาวเกิน และไม่ใช้
+Dynamic Memory Allocation
 
-Build:
+คำสั่ง Build:
 
 ```sh
 make build-selected EP=EP02_UART
 ```
 
-## Concepts learned
+## สิ่งที่เรียนรู้
 
-- Baud-rate calculation
-- Polling `UDRE0`, `RXC0`, and `TXC0`-related data flow
-- Byte-oriented serial I/O
-- Fixed-buffer command parsing
-- Why UART is a common firmware debug channel
+- การคำนวณ Baud Rate
+- การ Poll Flag `UDRE0` และ `RXC0`
+- Serial I/O แบบหนึ่ง byte ต่อครั้ง
+- การ Parse คำสั่งด้วย Buffer ขนาดคงที่
+- เหตุผลที่ UART เป็น Debug Channel สำคัญของ Firmware
 
-Next: [EP03 - Timer](../EP03_TIMER/README.md)
+ตอนถัดไป: [EP03 - Timer](../EP03_TIMER/README.md)

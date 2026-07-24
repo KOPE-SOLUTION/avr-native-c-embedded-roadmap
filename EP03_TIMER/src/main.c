@@ -16,10 +16,10 @@ static void timer1_init_ctc_1ms(void)
     TCNT1 = 0U;
     OCR1A = (uint16_t)OCR1A_VALUE;
 
-    /* Clear a pending compare flag before the timer starts. */
+    /* ล้าง Compare Flag ที่อาจค้างอยู่ก่อนเริ่ม Timer */
     TIFR1 = (1U << OCF1A);
 
-    /* CTC mode, top = OCR1A, prescaler = 64. */
+    /* CTC Mode, ค่า TOP = OCR1A และ Prescaler = 64 */
     TCCR1B = (1U << WGM12) | (1U << CS11) | (1U << CS10);
 }
 
@@ -33,7 +33,7 @@ int main(void)
 
     while (1) {
         if ((TIFR1 & (1U << OCF1A)) != 0U) {
-            TIFR1 = (1U << OCF1A); /* Write one to clear. */
+            TIFR1 = (1U << OCF1A); /* เขียน 1 เพื่อล้าง Flag */
             elapsed_ms++;
 
             if (elapsed_ms >= 1000U) {

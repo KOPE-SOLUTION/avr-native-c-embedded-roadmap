@@ -15,7 +15,7 @@ static void uart_init(void)
     UBRR0H = (uint8_t)(UBRR_VALUE >> 8U);
     UBRR0L = (uint8_t)UBRR_VALUE;
 
-    UCSR0A = 0U; /* Normal speed, not U2X mode. */
+    UCSR0A = 0U; /* ใช้ความเร็วปกติ ไม่เปิด U2X Mode */
     UCSR0B = (1U << RXEN0) | (1U << TXEN0);
     UCSR0C = (1U << UCSZ01) | (1U << UCSZ00); /* 8N1. */
 }
@@ -24,13 +24,13 @@ static void uart_putchar(char character)
 {
     if (character == '\n') {
         while ((UCSR0A & (1U << UDRE0)) == 0U) {
-            /* Wait for the transmit register. */
+            /* รอให้ Transmit Register พร้อม */
         }
         UDR0 = (uint8_t)'\r';
     }
 
     while ((UCSR0A & (1U << UDRE0)) == 0U) {
-        /* Wait for the transmit register. */
+        /* รอให้ Transmit Register พร้อม */
     }
     UDR0 = (uint8_t)character;
 }

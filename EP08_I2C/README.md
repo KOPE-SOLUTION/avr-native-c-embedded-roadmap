@@ -1,25 +1,25 @@
 # EP08 - I2C/TWI Address Scanner
 
-Use the ATmega328P Two-Wire Interface (TWI) registers to scan a 7-bit I2C bus
-without Arduino `Wire`.
+ใช้ Two-Wire Interface (TWI) Register ของ ATmega328P เพื่อ Scan I2C Bus
+แบบ 7-bit โดยไม่ใช้ Arduino `Wire`
 
-## Wiring
+## การต่อวงจร
 
-| I2C device | Uno / ATmega328P |
+| อุปกรณ์ I2C | Uno / ATmega328P |
 | --- | --- |
 | SDA | A4 / PC4 / SDA |
 | SCL | A5 / PC5 / SCL |
 | GND | GND |
-| VCC | Device-specific supply |
+| VCC | ใช้แรงดันตามข้อกำหนดของอุปกรณ์ |
 
-SDA and SCL are open-drain bus lines and require pull-up resistors. Many OLED
-and sensor modules already include pull-ups. Make sure the pull-up voltage is
-safe for every device on the bus.
+SDA และ SCL เป็น Open-drain Bus Line และต้องมี Pull-up Resistor โดย OLED
+และ Sensor Module หลายรุ่นมี Pull-up มาให้แล้ว ตรวจให้แน่ใจว่า Pull-up
+Voltage ปลอดภัยกับอุปกรณ์ทุกตัวบน Bus
 
-## TWI configuration
+## การตั้งค่า TWI
 
-- Controller/master transmitter for address probing
-- Bus rate: 100 kHz at `F_CPU = 16 MHz`
+- Controller/Master Transmitter สำหรับ Probe Address
+- Bus Rate: 100 kHz เมื่อ `F_CPU = 16 MHz`
 - Prescaler: 1
 - `TWBR = 72`
 
@@ -27,20 +27,20 @@ safe for every device on the bus.
 SCL = F_CPU / (16 + 2 * TWBR * prescaler)
 ```
 
-| Register | Role |
+| Register | หน้าที่ |
 | --- | --- |
-| `TWBR` | Bit-rate divider |
-| `TWSR` | Prescaler and bus status code |
-| `TWCR` | START, STOP, enable, and completion control |
-| `TWDR` | Address/data byte |
+| `TWBR` | Bit-rate Divider |
+| `TWSR` | Prescaler และ Bus Status Code |
+| `TWCR` | ควบคุม START, STOP, Enable และ Completion |
+| `TWDR` | Address/Data byte |
 
-## Test
+## วิธีทดสอบ
 
-1. Power off and connect an I2C module.
-2. Flash [src/main.c](src/main.c).
-3. Open a terminal at 9600 baud.
+1. ปิดไฟแล้วเชื่อมต่อ I2C Module
+2. Flash [src/main.c](src/main.c)
+3. เปิด Serial Terminal ที่ 9600 baud
 
-Example for a display at address `0x3C`:
+ตัวอย่าง Display ที่ Address `0x3C`:
 
 ```text
 I2C scan
@@ -48,12 +48,12 @@ Found 0x3C
 Devices: 1
 ```
 
-The scan repeats every five seconds. It probes addresses `0x08-0x77`, leaving
-reserved address ranges alone.
+Scanner ทำงานซ้ำทุกห้าวินาทีและ Probe Address `0x08-0x77` โดยไม่แตะช่วง
+Reserved Address
 
 ```sh
 make build-selected EP=EP08_I2C
 ```
 
-This finishes the EP01-EP08 native companion. A natural next module is writing
-small reusable peripheral drivers and testing them across multiple AVR MCUs.
+EP นี้จบ Native Companion ชุด EP01-EP08 ขั้นต่อไปที่เหมาะสมคือการสร้าง
+Peripheral Driver ขนาดเล็กที่นำกลับมาใช้ซ้ำและทดสอบกับ AVR หลายรุ่น

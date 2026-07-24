@@ -11,12 +11,12 @@ ISR(INT0_vect)
 
 static void int0_init_falling_edge(void)
 {
-    /* Falling edge: ISC01 = 1, ISC00 = 0. */
+    /* Falling Edge: ISC01 = 1 และ ISC00 = 0 */
     EICRA = (EICRA & ~((1U << ISC01) | (1U << ISC00))) |
             (1U << ISC01);
 
-    EIFR = (1U << INTF0);  /* Clear a stale flag. */
-    EIMSK |= (1U << INT0); /* Enable external interrupt 0. */
+    EIFR = (1U << INTF0);  /* ล้าง Flag ที่อาจค้างอยู่ */
+    EIMSK |= (1U << INT0); /* เปิด External Interrupt 0 */
 }
 
 int main(void)
@@ -25,7 +25,7 @@ int main(void)
     PORTB &= ~(1U << PORTB5);
 
     DDRD &= ~(1U << DDD2);
-    PORTD |= (1U << PORTD2); /* Internal pull-up on D2. */
+    PORTD |= (1U << PORTD2); /* เปิด Internal Pull-up ที่ D2 */
 
     int0_init_falling_edge();
     sei();

@@ -31,13 +31,13 @@ static void uart_putchar(char character)
 {
     if (character == '\n') {
         while ((UCSR0A & (1U << UDRE0)) == 0U) {
-            /* Wait. */
+            /* รอให้ Register พร้อม */
         }
         UDR0 = (uint8_t)'\r';
     }
 
     while ((UCSR0A & (1U << UDRE0)) == 0U) {
-        /* Wait. */
+        /* รอให้ Register พร้อม */
     }
     UDR0 = (uint8_t)character;
 }
@@ -76,7 +76,7 @@ static void uart_print_u8(uint8_t value)
 
 static void twi_init(void)
 {
-    TWSR &= ~((1U << TWPS1) | (1U << TWPS0)); /* Prescaler 1. */
+    TWSR &= ~((1U << TWPS1) | (1U << TWPS0)); /* Prescaler เท่ากับ 1 */
     TWBR = (uint8_t)TWBR_VALUE;
     TWCR = (1U << TWEN);
 }
@@ -100,7 +100,7 @@ static void twi_stop(void)
 
     TWCR = (1U << TWINT) | (1U << TWEN) | (1U << TWSTO);
 
-    /* Hardware clears TWSTO after the STOP condition reaches the bus. */
+    /* Hardware ล้าง TWSTO เมื่อส่ง STOP Condition ลง Bus แล้ว */
     while ((TWCR & (1U << TWSTO)) != 0U) {
         timeout--;
         if (timeout == 0U) {
@@ -125,7 +125,7 @@ static bool twi_probe(uint8_t address)
         return false;
     }
 
-    TWDR = (uint8_t)(address << 1U); /* SLA+W. */
+    TWDR = (uint8_t)(address << 1U); /* SLA+W */
     TWCR = (1U << TWINT) | (1U << TWEN);
     if (!twi_wait()) {
         twi_stop();

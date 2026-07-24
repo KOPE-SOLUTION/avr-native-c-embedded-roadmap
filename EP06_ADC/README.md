@@ -1,45 +1,45 @@
-# EP06 - ADC Measurement
+# EP06 - การวัดค่าด้วย ADC
 
-Read a potentiometer on ADC0, map the 10-bit result to Timer1's 8-bit PWM, and
-report both values through USART0--without `analogRead()`, `map()`, or Arduino
-`Serial`.
+อ่าน Potentiometer ที่ ADC0 แปลงผลลัพธ์ 10-bit เป็น PWM 8-bit ของ Timer1
+และรายงานค่าผ่าน USART0 โดยไม่ใช้ `analogRead()`, `map()` หรือ Arduino
+`Serial`
 
-## Wiring
+## การต่อวงจร
 
-| Potentiometer pin | Uno |
+| ขา Potentiometer | Uno |
 | --- | --- |
-| One outer pin | 5V |
-| Other outer pin | GND |
-| Wiper | A0 / ADC0 |
+| ขานอกด้านหนึ่ง | 5V |
+| ขานอกอีกด้าน | GND |
+| ขากลาง/Wiper | A0 / ADC0 |
 
-Connect an external LED and resistor to D9 as described in EP05. Keep all
-analog input voltages between GND and the selected reference voltage.
+ต่อ LED ภายนอกพร้อมตัวต้านทานที่ D9 ตาม EP05 และรักษาแรงดัน Analog Input
+ให้อยู่ระหว่าง GND กับ Reference Voltage ที่เลือก
 
-## ADC configuration
+## การตั้งค่า ADC
 
 - Reference: AVCC
 - Channel: ADC0 / A0
 - Resolution: 10 bit (`0-1023`)
-- ADC prescaler: 128
-- ADC clock: `16 MHz / 128 = 125 kHz`
-- Conversion mode: single conversion, polling
+- ADC Prescaler: 128
+- ADC Clock: `16 MHz / 128 = 125 kHz`
+- Conversion Mode: Single Conversion แบบ Polling
 
-| Register | Role |
+| Register | หน้าที่ |
 | --- | --- |
-| `ADMUX` | Reference and channel selection |
-| `ADCSRA` | Enable, start, status, and prescaler |
-| `ADC` | Combined 10-bit result |
-| `DIDR0` | Disable ADC0 digital input buffer |
+| `ADMUX` | เลือก Reference และ Channel |
+| `ADCSRA` | Enable, Start, Status และ Prescaler |
+| `ADC` | ผลลัพธ์ 10-bit ที่รวมแล้ว |
+| `DIDR0` | ปิด Digital Input Buffer ของ ADC0 |
 
-The mapping is a bit shift:
+การแปลงค่าใช้การ Shift bit:
 
 ```c
-pwm_value = (uint8_t)(adc_value >> 2U); /* 10 bit to 8 bit */
+pwm_value = (uint8_t)(adc_value >> 2U); /* 10 bit เป็น 8 bit */
 ```
 
-## Test
+## วิธีทดสอบ
 
-Open a terminal at 9600 baud and rotate the potentiometer:
+เปิด Serial Terminal ที่ 9600 baud แล้วหมุน Potentiometer:
 
 ```text
 ADC: 0 | PWM: 0
@@ -51,6 +51,6 @@ ADC: 1023 | PWM: 255
 make build-selected EP=EP06_ADC
 ```
 
-Source: [src/main.c](src/main.c)
+ซอร์ส: [src/main.c](src/main.c)
 
-Next: [EP07 - SPI](../EP07_SPI/README.md)
+ตอนถัดไป: [EP07 - SPI](../EP07_SPI/README.md)

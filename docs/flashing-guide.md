@@ -1,22 +1,22 @@
-# Flashing Guide
+# คู่มือการ Flash Firmware
 
-## Uno USB bootloader with avrdude
+## Uno USB Bootloader กับ avrdude
 
-Connect the Uno by USB and find its serial port.
+เชื่อมต่อ Uno ด้วย USB แล้วตรวจสอบชื่อ Serial Port
 
-Build and flash one episode:
+Build และ Flash หนึ่ง EP:
 
 ```sh
 make flash EP=EP01_GPIO PORT=COM3
 ```
 
-Windows:
+บน Windows:
 
 ```powershell
 mingw32-make flash EP=EP01_GPIO PORT=COM3
 ```
 
-The Makefile defaults are:
+ค่าเริ่มต้นของ Makefile:
 
 ```text
 MCU          = atmega328p
@@ -24,43 +24,42 @@ PROGRAMMER   = arduino
 UPLOAD_BAUD  = 115200
 ```
 
-An official Uno R3 normally uses these settings. A clone or a board with a
-different bootloader may need another baud rate:
+Uno R3 ของแท้โดยทั่วไปใช้ค่าเหล่านี้ Board Clone หรือบอร์ดที่ใช้ Bootloader
+ต่างรุ่นอาจต้องเปลี่ยน Baud Rate:
 
 ```sh
 make flash EP=EP01_GPIO PORT=COM3 UPLOAD_BAUD=57600
 ```
 
-Before uploading:
+ก่อน Upload:
 
-1. Close Serial Monitor and any program holding the COM port.
-2. Disconnect hardware on D0/RX and D1/TX if it interferes.
-3. Confirm the selected board is an ATmega328P Uno running at 16 MHz.
-4. Keep the board powered during the complete operation.
+1. ปิด Serial Monitor และโปรแกรมที่กำลังจับ COM Port
+2. ถอด Hardware ที่ D0/RX และ D1/TX หากรบกวนการสื่อสาร
+3. ยืนยันว่า Board ใช้ ATmega328P และ Clock 16 MHz
+4. จ่ายไฟให้ Board ตลอดขั้นตอน
 
-## Hardware programmer through ICSP
+## การใช้ Hardware Programmer ผ่าน ICSP
 
-MPLAB X can program through a compatible hardware programmer connected to the
-Uno ICSP header. The six signals are MISO, VCC, SCK, MOSI, RESET, and GND.
+MPLAB X สามารถ Program ผ่าน Hardware Programmer ที่รองรับและเชื่อมต่อกับ
+Uno ICSP Header สัญญาณหกขาคือ MISO, VCC, SCK, MOSI, RESET และ GND
 
-Check all of the following before programming:
+ตรวจสอบก่อน Program:
 
-- The tool explicitly supports ATmega328P in your MPLAB X/device-pack version.
-- Target voltage and tool power settings are correct.
-- ICSP orientation is correct.
-- Nothing attached to SPI pins is driving the bus.
-- Fuse changes are disabled unless you have a deliberate recovery plan.
+- Tool รองรับ ATmega328P ใน MPLAB X/Device Pack Version ที่ใช้อยู่
+- Target Voltage และ Tool Power Setting ถูกต้อง
+- ทิศทาง ICSP ถูกต้อง
+- ไม่มีอุปกรณ์ที่ขา SPI ขับ Bus สวนทางกัน
+- ปิดการเปลี่ยน Fuse เว้นแต่มีแผนกู้คืนที่ชัดเจน
 
-An ISP chip erase/program operation can remove the Uno bootloader. It can be
-restored later with an ISP programmer, but USB bootloader uploads will not work
-until it is restored.
+การ Chip Erase/Program ผ่าน ISP อาจลบ Uno Bootloader สามารถเขียนกลับด้วย
+ISP Programmer ได้ แต่ USB Bootloader Upload จะใช้ไม่ได้จนกว่าจะกู้คืน
 
-## Serial output
+## การตรวจสอบ Serial Output
 
-Episodes 02, 06, 07, and 08 use USART0 at:
+EP02, EP06, EP07 และ EP08 ใช้ USART0 ด้วยค่า:
 
 ```text
 9600 baud, 8 data bits, no parity, 1 stop bit
 ```
 
-Open any serial terminal at 9600 baud after the upload completes.
+เปิด Serial Terminal ที่ 9600 baud หลัง Upload เสร็จ

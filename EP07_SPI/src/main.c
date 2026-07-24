@@ -27,13 +27,13 @@ static void uart_putchar(char character)
 {
     if (character == '\n') {
         while ((UCSR0A & (1U << UDRE0)) == 0U) {
-            /* Wait. */
+            /* รอให้ Register พร้อม */
         }
         UDR0 = (uint8_t)'\r';
     }
 
     while ((UCSR0A & (1U << UDRE0)) == 0U) {
-        /* Wait. */
+        /* รอให้ Register พร้อม */
     }
     UDR0 = (uint8_t)character;
 }
@@ -55,12 +55,12 @@ static void uart_print_hex8(uint8_t value)
 
 static void spi_init_slow(void)
 {
-    /* SS, MOSI, and SCK outputs; MISO input. */
+    /* กำหนด SS, MOSI และ SCK เป็น Output; MISO เป็น Input */
     DDRB |= (1U << DDB2) | (1U << DDB3) | (1U << DDB5);
     DDRB &= ~(1U << DDB4);
     SD_CS_HIGH();
 
-    /* Enable, controller/master, mode 0, MSB first, f_CPU / 128. */
+    /* เปิด SPI, Controller/Master, Mode 0, MSB First, f_CPU / 128 */
     SPCR = (1U << SPE) | (1U << MSTR) | (1U << SPR1) | (1U << SPR0);
     SPSR &= ~(1U << SPI2X);
 }
@@ -69,7 +69,7 @@ static uint8_t spi_transfer(uint8_t outgoing)
 {
     SPDR = outgoing;
     while ((SPSR & (1U << SPIF)) == 0U) {
-        /* Wait for all eight bits. */
+        /* รอส่ง/รับข้อมูลครบ 8 bit */
     }
     return SPDR;
 }
@@ -77,7 +77,7 @@ static uint8_t spi_transfer(uint8_t outgoing)
 static void sd_deselect(void)
 {
     SD_CS_HIGH();
-    (void)spi_transfer(0xFFU); /* Eight clocks after CS rises. */
+    (void)spi_transfer(0xFFU); /* ส่ง Clock อีก 8 รอบหลัง CS เป็น HIGH */
 }
 
 static bool sd_wait_ready(void)
@@ -133,14 +133,14 @@ int main(void)
 
     _delay_ms(10.0);
 
-    /* At least 74 clocks with CS high before the first SD command. */
+    /* ส่งอย่างน้อย 74 Clock ขณะ CS เป็น HIGH ก่อน SD Command แรก */
     SD_CS_HIGH();
     for (attempt = 0U; attempt < 10U; attempt++) {
         (void)spi_transfer(0xFFU);
     }
 
     for (attempt = 0U; attempt < 10U; attempt++) {
-        response = sd_command(0U, 0UL, 0x95U); /* CMD0 with required CRC. */
+        response = sd_command(0U, 0UL, 0x95U); /* CMD0 พร้อม CRC ที่กำหนด */
         sd_deselect();
 
         if (response == 0x01U) {
@@ -158,6 +158,6 @@ int main(void)
     }
 
     while (1) {
-        /* Handshake result remains visible in the terminal. */
+        /* คงผล Handshake ไว้ให้ตรวจสอบใน Terminal */
     }
 }

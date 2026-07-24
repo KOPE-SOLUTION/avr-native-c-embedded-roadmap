@@ -9,9 +9,9 @@
 
 static void pwm1a_init_fast_8bit(void)
 {
-    DDRB |= (1U << DDB1); /* OC1A / Uno D9 output. */
+    DDRB |= (1U << DDB1); /* กำหนด OC1A / Uno D9 เป็น Output */
 
-    /* 8-bit Fast PWM, non-inverting output on OC1A. */
+    /* 8-bit Fast PWM แบบ Non-inverting ที่ OC1A */
     TCCR1A = (1U << COM1A1) | (1U << WGM10);
     TCCR1B = (1U << WGM12) | (1U << CS11) | (1U << CS10);
     OCR1A = 0U;

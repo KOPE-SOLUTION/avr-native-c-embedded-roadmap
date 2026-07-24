@@ -1,41 +1,41 @@
 # EP04 - External Interrupt
 
-Use the INT0 peripheral to respond to a button falling edge without
-`attachInterrupt()`.
+ใช้ INT0 Peripheral เพื่อตอบสนองต่อ Falling Edge จากปุ่ม โดยไม่ใช้
+`attachInterrupt()`
 
-## Wiring
+## การต่อวงจร
 
-| Component | Connection |
+| อุปกรณ์ | การเชื่อมต่อ |
 | --- | --- |
-| Push button | D2/INT0 to GND |
-| LED | Onboard D13 LED |
+| Push button | D2/INT0 ลง GND |
+| LED | ใช้ LED บนบอร์ดที่ D13 |
 
-PD2 uses its internal pull-up, so pressing the button creates a HIGH-to-LOW
-transition.
+PD2 เปิด Internal Pull-up ดังนั้นการกดปุ่มจะทำให้เกิดการเปลี่ยนสถานะจาก
+HIGH ไป LOW
 
-## Registers and ISR
+## Register และ ISR
 
-| Register/feature | Role |
+| Register/Feature | หน้าที่ |
 | --- | --- |
-| `EICRA` | Select falling-edge trigger with `ISC01:0` |
-| `EIFR` | Clear a stale `INTF0` flag |
-| `EIMSK` | Enable `INT0` |
-| `SREG.I` / `sei()` | Globally enable interrupts |
-| `ISR(INT0_vect)` | Interrupt service routine |
+| `EICRA` | เลือก Falling-edge Trigger ด้วย `ISC01:0` |
+| `EIFR` | ล้าง `INTF0` Flag ที่อาจค้างอยู่ |
+| `EIMSK` | เปิดใช้งาน `INT0` |
+| `SREG.I` / `sei()` | เปิด Global Interrupt |
+| `ISR(INT0_vect)` | Interrupt Service Routine |
 
-The ISR only changes one 8-bit state variable. The main loop applies that state
-to the LED, keeping the ISR short.
+ISR เปลี่ยนเพียงตัวแปรสถานะขนาด 8 bit ส่วน Main Loop นำสถานะไปควบคุม LED
+ทำให้ ISR สั้นและทำงานเสร็จเร็ว
 
-## Mechanical switch warning
+## คำเตือนเรื่อง Mechanical Switch
 
-A real push button bounces and may generate several edges from one press. This
-minimal example makes that behavior visible; production code should add
-hardware or timer-based debounce rather than delaying inside the ISR.
+Push button จริงมีอาการ Contact Bounce และอาจสร้างหลาย Edge จากการกดหนึ่งครั้ง
+ตัวอย่างพื้นฐานนี้จงใจให้เห็นพฤติกรรมดังกล่าว ในระบบจริงควรเพิ่ม Hardware
+Debounce หรือ Timer-based Debounce และไม่ควรหน่วงเวลาภายใน ISR
 
 ```sh
 make build-selected EP=EP04_INTERRUPT
 ```
 
-Source: [src/main.c](src/main.c)
+ซอร์ส: [src/main.c](src/main.c)
 
-Next: [EP05 - PWM](../EP05_PWM/README.md)
+ตอนถัดไป: [EP05 - PWM](../EP05_PWM/README.md)
