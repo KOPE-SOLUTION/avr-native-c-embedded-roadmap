@@ -16,13 +16,35 @@ EP นี้เรียนรู้การควบคุมขา Digital �
 > EP01 หน้านี้เป็นบทเรียนหลักและอ่านได้จบในหน้าเดียว ส่วนไฟล์ใน `docs/`
 > เป็นเอกสารอ้างอิงสำหรับกลับมาเปิดดูภายหลัง ไม่จำเป็นต้องอ่านก่อน
 
-## 1. ฮาร์ดแวร์และการต่อวงจร
+## ลำดับ Chapter
+
+Chapter 1–9 ด้านล่างใช้ชื่อและลำดับเดียวกับวิดีโอ เพื่อให้หยุดวิดีโอแล้ว
+กลับมาอ่านคำอธิบายในตำแหน่งเดียวกันได้ทันที
+
+| Chapter | เนื้อหา |
+| --- | --- |
+| 1 | การต่อวงจร |
+| 2 | D13 ไม่ใช่ชื่อขาของ MCU |
+| 3 | Register คืออะไร |
+| 4 | ชื่อ Register มาจากไหน |
+| 5 | ตั้ง D13 เป็น Output |
+| 6 | ตั้ง D2 เป็น Input พร้อม Pull-up |
+| 7 | อ่านปุ่มและควบคุม LED |
+| 8 | โค้ดฉบับเต็ม |
+| 9 | Build และ Flash |
+
+## Chapter 1 — การต่อวงจร
 
 | อุปกรณ์ | การเชื่อมต่อ |
 | --- | --- |
 | Arduino Uno | ต่อ USB เพื่อจ่ายไฟและ Upload |
 | Push button | ขาหนึ่งต่อ D2 อีกขาต่อ GND |
 | LED | ใช้ LED บนบอร์ดที่ D13 |
+
+![การต่อวงจร EP01: ปุ่มกดต่อระหว่าง D2 และ GND โดยใช้ Internal Pull-up](assets/ep01-gpio-wiring.png)
+
+*สายสีเขียวต่อจาก D2 ไปยัง Push button และสายสีดำต่อจากปุ่มลง GND
+ส่วน LED ใช้ LED บนบอร์ดที่ D13 จึงไม่ต้องต่อ LED ภายนอก*
 
 วงจรปุ่มใช้ Internal Pull-up ของ ATmega328P จึงไม่ต้องเพิ่มตัวต้านทาน
 Pull-up ภายนอกในตัวอย่างนี้
@@ -35,7 +57,35 @@ Pull-up ภายนอกในตัวอย่างนี้
 ถ้าใช้ LED ภายนอก ให้ต่อ D13 ผ่านตัวต้านทานประมาณ 220 โอห์มถึง 1 กิโลโอห์ม
 เข้าขา Anode ของ LED และต่อ Cathode ลง GND
 
-## 2. Register คืออะไร
+## Chapter 2 — D13 ไม่ใช่ชื่อขาของ MCU
+
+ชื่อ D13 และ D2 เป็นชื่อที่พิมพ์อยู่บนบอร์ด Arduino Uno แต่ภายใน
+ATmega328P จัดกลุ่มขาเป็น Port B, Port C และ Port D
+
+เส้นทางการหาชื่อ Register คือ:
+
+```text
+ชื่อขาบนบอร์ด -> Arduino Uno pinout -> ขา MCU -> Register ใน datasheet
+D13           -> PB5                -> bit 5  -> DDRB / PORTB / PINB
+D2            -> PD2                -> bit 2  -> DDRD / PORTD / PIND
+```
+
+| ขาบน Uno | ชื่อใน MCU | หมายความว่า | Register ที่เกี่ยวข้อง |
+| --- | --- | --- | --- |
+| D13 | `PB5` | Port B, bit 5 | `DDRB`, `PORTB`, `PINB` |
+| D2 | `PD2` | Port D, bit 2 | `DDRD`, `PORTD`, `PIND` |
+
+ข้อมูลส่วนนี้มาจากสองแหล่งหลัก:
+
+1. [เอกสาร Arduino Uno R3](https://docs.arduino.cc/hardware/uno-rev3/)
+   ใช้แปลงชื่อขาบนบอร์ด เช่น D13 ไปเป็นขาของ MCU เช่น PB5
+2. [หน้าผลิตภัณฑ์และ Datasheet ของ ATmega328P](https://www.microchip.com/en-us/product/atmega328p)
+   ใช้ดูหน้าที่ของ `DDRx`, `PORTx`, `PINx` และรายละเอียดแต่ละ bit
+
+ตัวอักษร `x` ในชื่อ `DDRx`, `PORTx`, `PINx` หมายถึงชื่อ Port เช่น
+Port B จะได้ `DDRB`, `PORTB`, `PINB`
+
+## Chapter 3 — Register คืออะไร
 
 Register (เรจิสเตอร์) คือช่องเก็บค่าขนาดเล็กที่อยู่ภายใน Hardware ของ MCU
 แต่ละ Register มีตำแหน่ง Address คงที่ตามที่ผู้ผลิตกำหนด และเชื่อมต่อกับ
@@ -112,35 +162,7 @@ Timer, UART, ADC, SPI และ I2C/TWI โดยตรง
 ดังนั้น Register-Level Programming หมายถึงการอ่านและเขียน Register เหล่านี้
 โดยตรง แทนการเรียก API ระดับสูงที่ซ่อนรายละเอียดฮาร์ดแวร์ ไว้
 
-## 3. ทำไม D13 เป็น PB5 และ D2 เป็น PD2
-
-ชื่อ D13 และ D2 เป็นชื่อที่พิมพ์อยู่บนบอร์ด Arduino Uno แต่ภายใน
-ATmega328P จัดกลุ่มขาเป็น Port B, Port C และ Port D
-
-เส้นทางการหาชื่อ Register คือ:
-
-```text
-ชื่อขาบนบอร์ด -> Arduino Uno pinout -> ขา MCU -> Register ใน datasheet
-D13           -> PB5                -> bit 5  -> DDRB / PORTB / PINB
-D2            -> PD2                -> bit 2  -> DDRD / PORTD / PIND
-```
-
-| ขาบน Uno | ชื่อใน MCU | หมายความว่า | Register ที่เกี่ยวข้อง |
-| --- | --- | --- | --- |
-| D13 | `PB5` | Port B, bit 5 | `DDRB`, `PORTB`, `PINB` |
-| D2 | `PD2` | Port D, bit 2 | `DDRD`, `PORTD`, `PIND` |
-
-ข้อมูลส่วนนี้มาจากสองแหล่งหลัก:
-
-1. [เอกสาร Arduino Uno R3](https://docs.arduino.cc/hardware/uno-rev3/)
-   ใช้แปลงชื่อขาบนบอร์ด เช่น D13 ไปเป็นขาของ MCU เช่น PB5
-2. [หน้าผลิตภัณฑ์และ Datasheet ของ ATmega328P](https://www.microchip.com/en-us/product/atmega328p)
-   ใช้ดูหน้าที่ของ `DDRx`, `PORTx`, `PINx` และรายละเอียดแต่ละ bit
-
-ตัวอักษร `x` ในชื่อ `DDRx`, `PORTx`, `PINx` หมายถึงชื่อ Port เช่น
-Port B จะได้ `DDRB`, `PORTB`, `PINB`
-
-## 4. Register GPIO สำคัญสามชนิด
+### Register GPIO สำคัญสามชนิด
 
 แต่ละ Port ของ ATmega328P มี Register หลักสามชนิด:
 
@@ -156,7 +178,7 @@ Port B จะได้ `DDRB`, `PORTB`, `PINB`
 - ถ้า `DDRD` กำหนดขานั้นเป็น Output: `PORTD` ใช้สั่ง HIGH/LOW
 - ถ้า `DDRD` กำหนดขานั้นเป็น Input: `PORTD` ใช้เปิด/ปิด Internal Pull-up
 
-## 5. คำสั่งไหนมาจากไหน
+## Chapter 4 — ชื่อ Register มาจากไหน
 
 โค้ด Native C มีทั้งคำสั่งภาษา C และชื่อที่เกี่ยวกับ Hardware จึงควรแยกให้ชัด:
 
@@ -200,7 +222,7 @@ Port B จะได้ `DDRB`, `PORTB`, `PINB`
 จาก Device Header การใช้ชื่อแยกกันช่วยให้เห็นว่า bit 5 ถูกใช้งานผ่าน
 Register ใด เช่น Direction หรือ Output
 
-## 6. `(1U << DDB5)` มาจากไหน
+## Chapter 5 — ตั้ง D13 เป็น Output
 
 `DDB5` คือหมายเลขตำแหน่ง bit 5 ภายใน `DDRB` โดย Compiler Header
 กำหนดชื่อไว้ให้เรา
@@ -219,7 +241,7 @@ Register ใด เช่น Direction หรือ Output
 เราใช้ Mask เพื่อเปลี่ยนเฉพาะขาที่ต้องการ โดยไม่ทำให้ขาอื่นใน Port เดียวกัน
 เปลี่ยนตามไปด้วย
 
-## 7. ตัวดำเนินการระดับบิต (Bitwise Operator) ที่สำคัญ
+### ตัวดำเนินการระดับบิต (Bitwise Operator) ที่สำคัญ
 
 | รูปแบบ | ความหมาย | ใช้ใน EP01 |
 | --- | --- | --- |
@@ -231,7 +253,7 @@ Register ใด เช่น Direction หรือ Output
 `&` เป็น Bitwise AND สำหรับตรวจแต่ละ bit ไม่ใช่ `&&` ซึ่งเป็น Logical AND
 สำหรับรวมเงื่อนไข
 
-### ตัวอย่างกำหนด bit เป็น 1 (Set) ด้วย `|=`
+### กำหนด D13/PB5 เป็น Output ด้วย `|=`
 
 ```c
 DDRB |= (1U << LED_DDR_BIT);
@@ -245,11 +267,20 @@ DDRB |= (1U << LED_DDR_BIT);
 4. เขียนค่ากลับไปยัง `DDRB`
 5. PB5 จึงกลายเป็น Output โดย bit อื่นไม่เปลี่ยน
 
-### ตัวอย่างล้าง bit เป็น 0 (Clear) ด้วย `&= ~`
+`DDRB` เป็น Data Direction Register ของ Port B เมื่อ bit 5 เป็น 1
+PB5 หรือ D13 จึงเป็นขา Output
+
+## Chapter 6 — ตั้ง D2 เป็น Input พร้อม Pull-up
+
+### กำหนด D2/PD2 เป็น Input
 
 ```c
 DDRD &= ~(1U << BUTTON_DDR_BIT);
 ```
+
+เมื่อ bit 2 ของ `DDRD` เป็น 0 ขา PD2 หรือ D2 จะเป็น Input
+
+#### คำสั่ง Clear bit ทำงานอย่างไร
 
 1. สร้าง Mask ของ bit 2
 2. `~` กลับทุก bit ทำให้ตำแหน่ง bit 2 เป็น 0
@@ -260,25 +291,6 @@ DDRD &= ~(1U << BUTTON_DDR_BIT);
 ไม่ควรใช้ `DDRD = 0;` เพื่อกำหนดแค่ D2 เพราะคำสั่งนั้นจะเปลี่ยนทิศทาง
 ทุกขาใน Port D
 
-## 8. อธิบายส่วนตั้งค่า GPIO
-
-### กำหนด D13/PB5 เป็น Output
-
-```c
-DDRB |= (1U << LED_DDR_BIT);
-```
-
-`DDRB` เป็น Data Direction Register ของ Port B เมื่อ bit 5 เป็น 1
-PB5 หรือ D13 จึงเป็นขา Output
-
-### กำหนด D2/PD2 เป็น Input
-
-```c
-DDRD &= ~(1U << BUTTON_DDR_BIT);
-```
-
-เมื่อ bit 2 ของ `DDRD` เป็น 0 ขา PD2 หรือ D2 จะเป็น Input
-
 ### เปิด Internal Pull-up ที่ D2
 
 ```c
@@ -288,7 +300,7 @@ PORTD |= (1U << BUTTON_PULLUP_BIT);
 เนื่องจาก PD2 เป็น Input แล้ว การเขียน 1 ไปยัง bit 2 ของ `PORTD`
 จึงหมายถึงเปิดตัวต้านทาน Pull-up ภายใน ไม่ได้หมายถึงสั่ง D2 เป็น Output HIGH
 
-## 9. อธิบายส่วนอ่านปุ่มและควบคุม LED
+## Chapter 7 — อ่านปุ่มและควบคุม LED
 
 ```c
 if ((PIND & (1U << BUTTON_INPUT_BIT)) == 0U) {
@@ -319,7 +331,7 @@ PORTB &= ~(1U << LED_OUTPUT_BIT);  /* D13 LOW: LED off */
 
 PB5 ถูกกำหนดเป็น Output แล้ว `PORTB` จึงควบคุมระดับ HIGH/LOW ที่ D13
 
-## 10. ซอร์สโค้ดฉบับเต็ม
+## Chapter 8 — โค้ดฉบับเต็ม
 
 ```c
 #include <avr/io.h>
@@ -349,7 +361,7 @@ int main(void)
 
 ซอร์สที่ใช้ Build จริง: [src/main.c](src/main.c)
 
-## 11. ลำดับการทำงานของโปรแกรม
+### ลำดับการทำงานของโปรแกรม
 
 1. C runtime เรียก `main()` หลัง MCU Reset
 2. ตั้ง D13/PB5 เป็น Output
@@ -361,7 +373,32 @@ int main(void)
 8. ถ้าปุ่ม HIGH ให้ล้าง bit ที่ `PORTB` เป็น 0 เพื่อปิด LED
 9. กลับไปอ่านปุ่มใหม่ทันที
 
-## 12. เปรียบเทียบกับ Arduino API
+## Chapter 9 — Build และ Flash
+
+หลังติดตั้งตาม [คู่มือเริ่มต้นด้วย WSL](../docs/wsl-setup.md) แล้ว ให้เปิด
+Ubuntu และเข้า Root ของ Repository จากนั้น Build เฉพาะ EP01:
+
+```sh
+make build-selected EP=EP01_GPIO
+make size EP=EP01_GPIO
+```
+
+เมื่อ Attach Arduino Uno ให้ WSL และพบ Port แล้วจึง Flash:
+
+```sh
+make flash EP=EP01_GPIO PORT=/dev/ttyUSB0
+```
+
+หาก Uno ปรากฏเป็น `/dev/ttyACM0` ให้เปลี่ยนค่า `PORT` ตามชื่อจริง
+ขั้นตอน `usbipd bind`, `attach` และการแก้ Permission อธิบายแยกไว้ในคู่มือ
+WSL เพื่อไม่ให้รายละเอียด Toolchain แทรกกลางเนื้อหา GPIO
+
+หลัง Flash ลง Arduino Uno:
+
+- กดปุ่ม: LED D13 ติด
+- ปล่อยปุ่ม: LED D13 ดับ
+
+## เนื้อหาเสริม — เปรียบเทียบกับ Arduino API
 
 | งาน | Arduino Framework | Native AVR C |
 | --- | --- | --- |
@@ -374,7 +411,7 @@ int main(void)
 Arduino API ทำงานสะดวกกว่า แต่ Native C ทำให้เห็นว่า ฮาร์ดแวร์เปลี่ยนค่าใน
 Register ใดและ bit ใดจริง
 
-## 13. ทำไมต้องเรียน Native C ทั้งที่ Arduino เขียนง่ายกว่า
+## เนื้อหาเสริม — เลือก Arduino Framework หรือ Native AVR C
 
 Arduino Framework ไม่ได้แย่ และ Native C ไม่ได้ดีกว่าในทุกสถานการณ์
 ทั้งสองแบบเป็นเครื่องมือคนละระดับที่มีข้อดีและข้อแลกเปลี่ยนต่างกัน
@@ -447,32 +484,7 @@ Peripheral นั้นอยู่หรือไม่ ตัวอย่า�
 > เข้าใจสิ่งที่ Arduino Framework ทำอยู่เบื้องหลัง และสามารถเลือกเครื่องมือ
 > ให้เหมาะกับข้อกำหนดของแต่ละงานได้
 
-## 14. วิธี Build และทดสอบ
-
-หลังติดตั้งตาม [คู่มือเริ่มต้นด้วย WSL](../docs/wsl-setup.md) แล้ว ให้เปิด
-Ubuntu และเข้า Root ของ Repository จากนั้น Build เฉพาะ EP01:
-
-```sh
-make build-selected EP=EP01_GPIO
-make size EP=EP01_GPIO
-```
-
-เมื่อ Attach Arduino Uno ให้ WSL และพบ Port แล้วจึง Flash:
-
-```sh
-make flash EP=EP01_GPIO PORT=/dev/ttyUSB0
-```
-
-หาก Uno ปรากฏเป็น `/dev/ttyACM0` ให้เปลี่ยนค่า `PORT` ตามชื่อจริง
-ขั้นตอน `usbipd bind`, `attach` และการแก้ Permission อธิบายแยกไว้ในคู่มือ
-WSL เพื่อไม่ให้รายละเอียด Toolchain แทรกกลางเนื้อหา GPIO
-
-หลัง Flash ลง Arduino Uno:
-
-- กดปุ่ม: LED D13 ติด
-- ปล่อยปุ่ม: LED D13 ดับ
-
-## 15. ข้อผิดพลาดที่พบบ่อย
+## ข้อผิดพลาดที่พบบ่อย
 
 - ต่อปุ่มไป 5V ทั้งที่ตัวอย่างออกแบบให้ปุ่มต่อ D2 ลง GND
 - อ่านสถานะปุ่มจาก `PORTD` แทน `PIND`
@@ -481,7 +493,7 @@ WSL เพื่อไม่ให้รายละเอียด Toolchain �
 - สับสน D13 ซึ่งเป็นชื่อบนบอร์ดกับ PB5 ซึ่งเป็นชื่อขา MCU
 - เปลี่ยน MCU หรือ Clock ใน Project แต่ยังใช้การตั้งค่าเดิม
 
-## 16. เอกสารเสริม อ่านเมื่อใด
+## เอกสารเสริม อ่านเมื่อใด
 
 EP01 อธิบายเนื้อหาที่จำเป็นครบแล้ว เอกสารต่อไปนี้ใช้เป็นเอกสารอ้างอิง:
 
