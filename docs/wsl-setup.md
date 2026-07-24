@@ -28,11 +28,12 @@ Device ให้ WSL ตลอด Workflow นี้
 ก่อนมี Repository นี้ ผู้จัดทำใช้ Arduino Uno และ ATmega328P ทดลองเขียน
 Register-Level C สำหรับ D13/PB5 แล้วแยกขั้นตอนที่ Arduino IDE ทำให้ออกมา:
 
-```text
-WSL: main.c -> avr-gcc -> Firmware ELF -> avr-objcopy -> Firmware HEX
-                                                |
-                                                v
-avrdude -> Uno USB Bootloader -> ATmega328P
+```mermaid
+flowchart LR
+    A["ทดลอง Native AVR C<br/>Arduino Uno + ATmega328P"] --> B["แยกขั้นตอนที่ Arduino IDE<br/>เคยจัดการให้"]
+    B --> C["Build ELF/HEX<br/>และ Flash สำเร็จ"]
+    C --> D["จับคู่กับ Roadmap เดิม<br/>EP01–EP08"]
+    D --> E["AVR Native C Embedded Roadmap"]
 ```
 
 ขั้นตอนนี้ทำงานสำเร็จและทำให้เข้าใจความสัมพันธ์ระหว่าง Source Code, ELF,
@@ -46,20 +47,32 @@ Arduino Uno Embedded Roadmap เดิม จึงเกิดเป็นซ�
 
 ## ภาพรวมของ Workflow
 
-```text
-Windows + USB
-      |
-      | usbipd-win
-      v
-Ubuntu บน WSL 2
-      |
-      | avr-gcc + Make
-      v
-ไฟล์ .elf และ .hex
-      |
-      | avrdude ผ่าน /dev/ttyUSB0 หรือ /dev/ttyACM0
-      v
-Arduino Uno Bootloader -> ATmega328P
+```mermaid
+flowchart LR
+    subgraph WIN["Windows"]
+        A["Arduino Uno<br/>เชื่อมต่อผ่าน USB"]
+        B["usbipd-win<br/>Bind และ Attach"]
+        A --> B
+    end
+
+    subgraph WSL["Ubuntu บน WSL 2"]
+        C["/dev/ttyUSB0<br/>หรือ /dev/ttyACM0"]
+        D["main.c<br/>Register-Level C"]
+        E["Make + avr-gcc + avr-libc<br/>Compile และ Link"]
+        F["Firmware ELF"]
+        G["avr-objcopy"]
+        H["Firmware HEX"]
+        I["avrdude"]
+
+        D --> E --> F --> G --> H --> I
+        C --> I
+    end
+
+    J["Arduino Uno<br/>USB Bootloader"]
+    K["ATmega328P"]
+
+    B --> C
+    I --> J --> K
 ```
 
 ## 1. สิ่งที่ต้องมี

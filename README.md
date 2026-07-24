@@ -16,7 +16,23 @@ digitalWrite(13, HIGH);
 PORTB |= (1U << PORTB5);
 ```
 
-## ขอบเขตของ Repository
+## ลำดับ Chapter ของวิดีโอบทนำ
+
+README หน้านี้เป็นเอกสารประกอบวิดีโอบทนำ ไม่ใช่บทพูดที่ต้องอ่านตามทุกบรรทัด
+วิดีโอใช้เล่าแนวคิดและเหตุผล ส่วน README เก็บตาราง คำสั่ง และ Link สำหรับ
+กลับมาอ้างอิง โดยทั้งสองส่วนใช้ลำดับหัวข้อเดียวกันดังนี้:
+
+| Chapter | เนื้อหา |
+| --- | --- |
+| 1 | ซีรีส์นี้คืออะไร |
+| 2 | Arduino Framework ไม่ได้แย่ แล้วเมื่อไหร่ควรใช้ Native |
+| 3 | Roadmap EP01–EP08 |
+| 4 | ที่มาและภาพรวม Workflow |
+| 5 | เลือก MPLAB หรือ WSL |
+| 6 | เหตุผลที่ซีรีส์เลือก WSL |
+| 7 | เตรียมเครื่องและเริ่ม EP01 |
+
+## Chapter 1 — ซีรีส์นี้คืออะไร
 
 | รายการ | สิ่งที่เลือกใช้ |
 | --- | --- |
@@ -37,7 +53,23 @@ Framework ทุกตัวอย่างมี `main()` ของตัวเ
 > เพราะเป้าหมายคือเปรียบเทียบ Native C กับ Arduino Uno Series เดิมโดยตรง
 > สำหรับผลิตภัณฑ์ใหม่ควรประเมิน AVR Family รุ่นปัจจุบันแยกต่างหาก
 
-## Roadmap การเรียนรู้
+## Chapter 2 — Arduino Framework ไม่ได้แย่ แล้วเมื่อไหร่ควรใช้ Native
+
+Arduino Framework เป็นเครื่องมือที่ดีสำหรับเริ่มต้น ทดลองแนวคิด และใช้งาน
+Library ได้รวดเร็ว ซีรีส์นี้ไม่ได้สร้างขึ้นเพื่อบอกให้เลิกใช้ Arduino Code
+แต่ใช้ Native AVR C เพื่อเปิดดูสิ่งที่ API จัดการให้อยู่เบื้องหลัง
+
+| เลือก Arduino Framework เมื่อ | เลือก Native AVR C เมื่อ |
+| --- | --- |
+| ต้องการสร้าง Prototype ให้ทำงานเร็ว | ต้องการเข้าใจ Register และ Peripheral |
+| ต้องการใช้ Library หรือ Module จำนวนมาก | ต้องการอ่าน Datasheet แล้วควบคุม Hardware โดยตรง |
+| รายละเอียดระดับ Clock Cycle ไม่ใช่ประเด็นหลัก | ต้องควบคุม Timing, Memory หรือพฤติกรรมของ Peripheral ชัดเจน |
+| ทีมคุ้นเคยกับ Arduino Ecosystem | ต้องการพื้นฐานเพื่อต่อยอดไปยัง MCU และ Toolchain อื่น |
+
+เป้าหมายจึงไม่ใช่การตัดสินว่าแบบใดดีกว่า แต่คือการมองเห็นทั้งสองระดับและ
+เลือกใช้ให้เหมาะกับงาน
+
+## Chapter 3 — Roadmap EP01–EP08
 
 | EP | หัวข้อ | ระดับ Arduino | Register สำคัญ | ตัวอย่าง |
 | --- | --- | --- | --- | --- |
@@ -54,7 +86,9 @@ EP07 จงใจหยุดก่อนชั้น FAT Filesystem เพื�
 และ SD Command แรกอย่างชัดเจน รวมถึงแยกขอบเขตระหว่าง Bus Driver,
 SD Protocol และ Filesystem
 
-## ที่มาของ Repository
+## Chapter 4 — ที่มาและภาพรวม Workflow
+
+### ที่มาของซีรีส์
 
 Repository นี้ต่อยอดจาก
 [Arduino Uno Embedded Roadmap](https://github.com/KOPE-SOLUTION/arduino-uno-embedded-roadmap)
@@ -62,28 +96,38 @@ Repository นี้ต่อยอดจาก
 เมื่อจบ Roadmap เดิมจึงเกิดแนวคิดสร้างซีรีส์คู่ขนานที่ใช้หัวข้อและบอร์ดเดิม
 แต่เปิดให้เห็นการทำงานระดับ Register ของ ATmega328P
 
+```mermaid
+flowchart LR
+    A["Arduino Uno Embedded Roadmap<br/>Arduino Framework"] --> B["จบ Roadmap เดิม<br/>EP01–EP08"]
+    B --> C["สร้างซีรีส์คู่ขนาน<br/>ใช้หัวข้อและบอร์ดเดิม"]
+    C --> D["AVR Native C Embedded Roadmap<br/>Register-Level C"]
+    D --> E["Arduino Uno R3<br/>ATmega328P"]
+```
+
 **บอร์ดอ้างอิงและบอร์ดที่ใช้ทดลองจริงคือ Arduino Uno ตั้งแต่ต้น** เนื้อหา
 ทุก EP จึงอ้างอิง ATmega328P และ Pin Mapping ของ Uno โดยตรง
+
+### ภาพรวม Workflow ที่ใช้จริง
 
 ก่อนจัดเนื้อหาเป็น Repository ผู้จัดทำได้ทดลอง Workflow Native AVR C กับ
 Arduino Uno โดยแยกขั้นตอนที่ Arduino IDE เคยจัดการให้ออกมาให้เห็นชัดเจน:
 
-1. ติดตั้ง `avr-gcc`, `avr-libc` และเครื่องมือ AVR ใน WSL
-2. เขียน `main.c` ควบคุม Hardware ของ ATmega328P ผ่าน Register โดยตรง
-3. ใช้ `avr-gcc` Compile ซอร์สเป็นไฟล์ ELF
-4. ใช้ `avr-objcopy` สร้าง Firmware Image แบบ HEX
-5. ใช้ `avrdude` ส่งไฟล์ HEX ผ่าน Uno USB Bootloader
-6. ตรวจสอบว่า Firmware ทำงานโดยไม่เรียก Arduino API
+```mermaid
+flowchart LR
+    A["main.c<br/>Register-Level C"]
 
-```text
-main.c สำหรับ ATmega328P
-  -> avr-gcc ใน WSL
-  -> Firmware ELF
-  -> avr-objcopy
-  -> Firmware HEX
-  -> avrdude
-  -> Arduino Uno Bootloader
-  -> ATmega328P
+    subgraph WSL["WSL + AVR Toolchain"]
+        B["avr-gcc + avr-libc<br/>Compile และ Link"]
+        C["Firmware ELF"]
+        D["avr-objcopy"]
+        E["Firmware HEX"]
+        F["avrdude"]
+    end
+
+    G["Arduino Uno<br/>USB Bootloader"]
+    H["ATmega328P<br/>ทำงานโดยไม่ใช้ Arduino Framework"]
+
+    A --> B --> C --> D --> E --> F --> G --> H
 ```
 
 Workflow นี้ทำให้เห็นความสัมพันธ์ระหว่าง Source Code, Compiler, Linker,
@@ -96,7 +140,7 @@ Arduino Uno และลำดับการเรียนรู้เดิ�
 Framework แต่ยังใช้ Compiler Header, C Runtime และ Startup Code มาตรฐาน
 ของ Toolchain
 
-## เลือก MPLAB หรือ WSL
+## Chapter 5 — เลือก MPLAB หรือ WSL
 
 ไม่มีคำตอบเดียวว่า Toolchain ใดคือสิ่งที่ “คนส่วนใหญ่ใช้” เพราะแต่ละกลุ่ม
 ใช้ Hardware และ Workflow ต่างกัน สิ่งสำคัญคือแยกสามเรื่องออกจากกัน:
@@ -136,7 +180,7 @@ Microchip มีทั้ง
 Program/Debug จาก MPLAB แบบเต็มรูปแบบจะต้องมี Hardware Tool ที่รองรับต่อ
 ผ่าน ICSP หรือใช้ `avrdude` แยกสำหรับ Upload ผ่าน Bootloader เดิม
 
-### สภาพแวดล้อมที่ใช้จริงในซีรีส์: WSL + avr-gcc
+## Chapter 6 — เหตุผลที่ซีรีส์เลือก WSL
 
 ซีรีส์นี้สานต่อ Workflow Native AVR C ที่ผู้จัดทำเคยทดลองกับ Arduino Uno
 และ ATmega328P สำเร็จแล้ว โดยใช้ WSL สร้าง ELF/HEX และใช้ `avrdude` ส่ง
@@ -178,7 +222,7 @@ MPLAB เหตุผลมาจากประสบการณ์จริ�
 ประหยัดพื้นที่หรือขั้นตอนกว่า จึงไม่จำเป็นต้องเปลี่ยน Environment เพียงเพื่อ
 ให้เหมือนในวิดีโอ
 
-ข้อความแนะนำสำหรับใช้เปิดซีรีส์:
+ข้อความสรุปสำหรับใช้พูดในวิดีโอบทนำ:
 
 > ซีรีส์นี้ใช้ Arduino Uno และ ATmega328P เป็น Hardware ตั้งแต่ต้น ผู้จัดทำ
 > เคยใช้ WSL Compile โค้ด Register-Level C เป็น ELF และ HEX แล้ว Flash ผ่าน
@@ -190,7 +234,7 @@ MPLAB เหตุผลมาจากประสบการณ์จริ�
 > ผู้เรียนสามารถใช้ MPLAB X กับ XC8 แทนได้ เพราะหัวใจของบทเรียนคือการเขียน
 > C เพื่อควบคุม Register ของ ATmega328P โดยตรง
 
-### เริ่มตามซีรีส์ด้วย WSL
+## Chapter 7 — เตรียมเครื่องและเริ่ม EP01
 
 เปิด Ubuntu จาก Windows PowerShell:
 
