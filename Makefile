@@ -2,7 +2,7 @@ MCU          ?= atmega328p
 F_CPU        ?= 16000000UL
 EP           ?= EP01_GPIO
 PROGRAMMER   ?= arduino
-PORT         ?= COM3
+PORT         ?= /dev/ttyUSB0
 UPLOAD_BAUD  ?= 115200
 
 AVR_CC       ?= avr-gcc
@@ -35,11 +35,11 @@ LDFLAGS := -Wl,--gc-sections
 
 help:
 	@echo AVR Native C Embedded Roadmap
-	@echo.
+	@echo ""
 	@echo   make all
 	@echo   make build-selected EP=EP01_GPIO
 	@echo   make size EP=EP01_GPIO
-	@echo   make flash EP=EP01_GPIO PORT=COM3
+	@echo   make flash EP=EP01_GPIO PORT=/dev/ttyUSB0
 	@echo   make clean
 
 all: $(HEX_FILES)

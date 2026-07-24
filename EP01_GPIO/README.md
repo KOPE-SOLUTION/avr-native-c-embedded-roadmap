@@ -449,17 +449,23 @@ Peripheral นั้นอยู่หรือไม่ ตัวอย่า�
 
 ## 14. วิธี Build และทดสอบ
 
-Build เฉพาะ EP01:
+หลังติดตั้งตาม [คู่มือเริ่มต้นด้วย WSL](../docs/wsl-setup.md) แล้ว ให้เปิด
+Ubuntu และเข้า Root ของ Repository จากนั้น Build เฉพาะ EP01:
 
 ```sh
 make build-selected EP=EP01_GPIO
+make size EP=EP01_GPIO
 ```
 
-Windows ที่ใช้ `mingw32-make`:
+เมื่อ Attach Arduino Uno ให้ WSL และพบ Port แล้วจึง Flash:
 
-```powershell
-mingw32-make build-selected EP=EP01_GPIO
+```sh
+make flash EP=EP01_GPIO PORT=/dev/ttyUSB0
 ```
+
+หาก Uno ปรากฏเป็น `/dev/ttyACM0` ให้เปลี่ยนค่า `PORT` ตามชื่อจริง
+ขั้นตอน `usbipd bind`, `attach` และการแก้ Permission อธิบายแยกไว้ในคู่มือ
+WSL เพื่อไม่ให้รายละเอียด Toolchain แทรกกลางเนื้อหา GPIO
 
 หลัง Flash ลง Arduino Uno:
 
@@ -483,10 +489,12 @@ EP01 อธิบายเนื้อหาที่จำเป็นครบ
   ต้องการแปลงขา Arduino อื่น เช่น D9, D10 หรือ A0 ไปเป็นชื่อ Port ของ MCU
 - [Register-level basics](../docs/register-basics.md): เปิดทบทวนรูปแบบ Set,
   Clear, Toggle และหัวข้อขั้นสูงที่หลาย EP ใช้ร่วมกัน
+- [WSL setup](../docs/wsl-setup.md): เปิดเมื่อต้องติดตั้ง avr-gcc, Build,
+  เชื่อม Uno ผ่าน USB และ Flash เป็นครั้งแรก
 - [Toolchain setup](../docs/toolchain-setup.md): เปิดเมื่อต้องติดตั้งหรือสร้าง
-  Project ใน MPLAB X, MPLAB for VS Code หรือ avr-gcc
-- [Flashing guide](../docs/flashing-guide.md): เปิดก่อน Upload ผ่าน bootloader
-  หรือ ICSP programmer
+  Project ทางเลือกใน MPLAB X หรือ MPLAB for VS Code
+- [Flashing guide](../docs/flashing-guide.md): เปิดทบทวนคำสั่ง Upload ผ่าน
+  Bootloader หรือ ICSP Programmer
 
 ## สิ่งที่เรียนรู้
 

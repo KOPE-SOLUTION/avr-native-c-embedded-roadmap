@@ -25,9 +25,9 @@ PORTB |= (1U << PORTB5);
 | ภาษา | C |
 | Framework | ไม่มี |
 | ระดับการเขียนโปรแกรม | Register-Level |
-| IDE/Compiler สำหรับบทเรียนหลัก | MPLAB X IDE + MPLAB XC8 |
-| IDE แบบเบาจากผู้ผลิต | MPLAB for VS Code + MPLAB XC8 |
-| Toolchain แบบ Command Line | avr-gcc + avr-libc + Make + avrdude |
+| ทางเลือกทั่วไปที่ใช้ GUI จากผู้ผลิต | MPLAB X หรือ MPLAB for VS Code + MPLAB XC8 |
+| สภาพแวดล้อมที่ใช้ในซีรีส์นี้ | WSL 2 + Ubuntu 24.04 + avr-gcc + avr-libc + Make + avrdude |
+| เหตุผลที่ซีรีส์เลือก WSL | เคยใช้ Workflow นี้กับ Uno สำเร็จ มี WSL อยู่แล้ว และไม่ต้องติดตั้ง IDE เพิ่ม |
 
 `<avr/io.h>` ทำหน้าที่ประกาศชื่อ Register ของ MCU ที่เลือก ไม่ใช่ Arduino
 Framework ทุกตัวอย่างมี `main()` ของตัวเอง และสามารถศึกษา/Build แยกกันได้
@@ -54,46 +54,171 @@ EP07 จงใจหยุดก่อนชั้น FAT Filesystem เพื�
 และ SD Command แรกอย่างชัดเจน รวมถึงแยกขอบเขตระหว่าง Bus Driver,
 SD Protocol และ Filesystem
 
-## เลือกเส้นทางการพัฒนา
+## ที่มาของ Repository
 
-### MPLAB X IDE + XC8 (แนะนำสำหรับเริ่มซีรีส์)
+Repository นี้ต่อยอดจาก
+[Arduino Uno Embedded Roadmap](https://github.com/KOPE-SOLUTION/arduino-uno-embedded-roadmap)
+ที่สอน GPIO, UART, Timer, Interrupt, PWM, ADC, SPI และ I2C ผ่าน Arduino API
+เมื่อจบ Roadmap เดิมจึงเกิดแนวคิดสร้างซีรีส์คู่ขนานที่ใช้หัวข้อและบอร์ดเดิม
+แต่เปิดให้เห็นการทำงานระดับ Register ของ ATmega328P
 
-สร้าง MPLAB X Standalone Project แยกหนึ่ง Project ต่อหนึ่ง EP แล้วเพิ่มไฟล์
-`src/main.c` ของตอนนั้น เลือก Device เป็น `ATmega328P` และ Compiler เป็น
-XC8 ดูขั้นตอนและความแตกต่างระหว่าง ICSP Programmer กับ Uno USB Bootloader
-ได้ใน [คู่มือติดตั้ง Toolchain](docs/toolchain-setup.md)
+**บอร์ดอ้างอิงและบอร์ดที่ใช้ทดลองจริงคือ Arduino Uno ตั้งแต่ต้น** เนื้อหา
+ทุก EP จึงอ้างอิง ATmega328P และ Pin Mapping ของ Uno โดยตรง
 
-Repository นี้จงใจไม่เก็บ Metadata ของ MPLAB Project ที่สร้างอัตโนมัติ
-เพื่อให้ซอร์สอ่านง่ายและนำไปใช้กับ Toolchain อื่นได้
+ก่อนจัดเนื้อหาเป็น Repository ผู้จัดทำได้ทดลอง Workflow Native AVR C กับ
+Arduino Uno โดยแยกขั้นตอนที่ Arduino IDE เคยจัดการให้ออกมาให้เห็นชัดเจน:
 
-Microchip รองรับ XC8 ผ่าน
+1. ติดตั้ง `avr-gcc`, `avr-libc` และเครื่องมือ AVR ใน WSL
+2. เขียน `main.c` ควบคุม Hardware ของ ATmega328P ผ่าน Register โดยตรง
+3. ใช้ `avr-gcc` Compile ซอร์สเป็นไฟล์ ELF
+4. ใช้ `avr-objcopy` สร้าง Firmware Image แบบ HEX
+5. ใช้ `avrdude` ส่งไฟล์ HEX ผ่าน Uno USB Bootloader
+6. ตรวจสอบว่า Firmware ทำงานโดยไม่เรียก Arduino API
+
+```text
+main.c สำหรับ ATmega328P
+  -> avr-gcc ใน WSL
+  -> Firmware ELF
+  -> avr-objcopy
+  -> Firmware HEX
+  -> avrdude
+  -> Arduino Uno Bootloader
+  -> ATmega328P
+```
+
+Workflow นี้ทำให้เห็นความสัมพันธ์ระหว่าง Source Code, Compiler, Linker,
+ELF, HEX, Upload Tool และ Bootloader จึงนำมาเป็นพื้นฐานของ EP01–EP08
+โดยเปลี่ยนเฉพาะวิธีเขียนจาก Arduino API เป็น Register-Level C แต่ยังใช้
+Arduino Uno และลำดับการเรียนรู้เดิม
+
+ในบันทึกการทดลองอาจเรียกแนวทางนี้ว่า Bare Metal C ส่วน Repository ใช้คำว่า
+**Native AVR C / Register-Level C** เพื่อระบุขอบเขตให้ชัดว่าไม่ใช้ Arduino
+Framework แต่ยังใช้ Compiler Header, C Runtime และ Startup Code มาตรฐาน
+ของ Toolchain
+
+## เลือก MPLAB หรือ WSL
+
+ไม่มีคำตอบเดียวว่า Toolchain ใดคือสิ่งที่ “คนส่วนใหญ่ใช้” เพราะแต่ละกลุ่ม
+ใช้ Hardware และ Workflow ต่างกัน สิ่งสำคัญคือแยกสามเรื่องออกจากกัน:
+
+- **Arduino Framework** คือ Software Layer และ API ที่ช่วยให้เขียนโค้ดง่าย
+- **MPLAB / WSL** คือ Development Environment บนเครื่องผู้พัฒนา
+- **XC8 / avr-gcc** คือ Compiler ที่สร้าง Machine Code สำหรับ AVR
+
+ดังนั้น MPLAB และ WSL ต่างก็ใช้เขียน Native AVR C ได้ ความเป็น Native ของ
+Repository นี้เกิดจากการควบคุม Register โดยตรงและไม่ Link Arduino Core
+ไม่ได้เกิดจากชื่อ IDE หรือ Operating System
+
+| สถานการณ์ | ตัวเลือกที่เหมาะ |
+| --- | --- |
+| ต้องการ GUI, Project Wizard และ Tool จากผู้ผลิต | MPLAB X + XC8 |
+| ต้องการใช้ MPLAB Ecosystem ใน VS Code | MPLAB for VS Code + XC8 |
+| ต้องการ Command Line และ Build ที่ทำซ้ำได้ | WSL + avr-gcc + Make |
+| มี Arduino Uno และต้องการ Upload ผ่าน USB Bootloader | avrdude ผ่าน WSL หรือ Native Windows |
+| ใช้ Microchip Programmer/Debugger ผ่าน ICSP | MPLAB + Hardware Tool ที่รองรับ |
+
+### ทางเลือกทั่วไปสำหรับผู้เริ่มต้น: MPLAB + XC8
+
+ถ้าผู้เรียนต้องการติดตั้งแล้วทำงานผ่าน GUI เป็นหลัก `MPLAB X + XC8`
+เข้าใจง่ายกว่าในช่วงเริ่มต้น เพราะ IDE ช่วยเลือก Device, Compiler,
+Build Configuration และแสดงข้อมูล Register/bit ภายใน Project เดียว
+MPLAB ยังเชื่อมกับ Programmer และ Debugger ของ Microchip ได้โดยตรง
+
+Microchip มีทั้ง
+[MPLAB X IDE](https://www.microchip.com/en-us/tools-resources/develop/mplab-x-ide)
+และ
 [MPLAB for VS Code](https://www.microchip.com/en-us/tools-resources/develop/mplab-tools-vs-code)
-ด้วย เหมาะสำหรับผู้เรียนที่คุ้นเคยกับ VS Code และต้องการ IDE ที่เบากว่า
-โดยซอร์สแบบ Register-Level ใน Repository นี้ไม่ต้องเปลี่ยน
+ส่วน [MPLAB XC8](https://www.microchip.com/en-us/tools-resources/develop/mplab-xc-compilers/xc8)
+รองรับ AVR 8-bit โดยตรง
 
-### avr-gcc + Make + avrdude
+อย่างไรก็ตาม Arduino Uno R3 ไม่มี Microchip Debugger อยู่บนบอร์ด ช่อง USB
+ของ Uno ติดต่อ ATmega328P ผ่าน USB-to-Serial และ Bootloader หากต้องการ
+Program/Debug จาก MPLAB แบบเต็มรูปแบบจะต้องมี Hardware Tool ที่รองรับต่อ
+ผ่าน ICSP หรือใช้ `avrdude` แยกสำหรับ Upload ผ่าน Bootloader เดิม
 
-Build ทุก EP:
+### สภาพแวดล้อมที่ใช้จริงในซีรีส์: WSL + avr-gcc
+
+ซีรีส์นี้สานต่อ Workflow Native AVR C ที่ผู้จัดทำเคยทดลองกับ Arduino Uno
+และ ATmega328P สำเร็จแล้ว โดยใช้ WSL สร้าง ELF/HEX และใช้ `avrdude` ส่ง
+Firmware ผ่าน Uno Bootloader
+
+เป้าหมายของ Repository คือให้ Build และ Flash จาก WSL ได้ใน Environment
+เดียว แต่ Workflow แบบผสมที่ Build ใน WSL แล้ว Flash ด้วย `avrdude` บน
+Windows ยังคงใช้เป็นทางเลือกสำรองได้
+
+การเลือกนี้ไม่ได้หมายความว่า WSL ง่ายที่สุดสำหรับทุกคนหรือ Native กว่า
+MPLAB เหตุผลมาจากประสบการณ์จริงและรูปแบบการสอนของผู้จัดทำ:
+
+- เป็น Workflow ที่เคยใช้กับ Arduino Uno สำเร็จและคุ้นเคยอยู่แล้ว
+- เครื่องที่ใช้ทำซีรีส์มี WSL, Ubuntu และ VS Code อยู่แล้ว ผู้จัดทำจึงไม่
+  ต้องการติดตั้ง MPLAB X, XC8 และส่วนประกอบของ IDE เพิ่มเพื่อใช้กับซีรีส์นี้
+  ช่วยลดพื้นที่ติดตั้งเพิ่มเติมและไม่สร้าง Development Environment ซ้ำซ้อน
+- ผู้จัดทำเคยพบปัญหาการติดตั้ง, `PATH` และ Version ของ AVR Toolchain บน
+  Windows โดยตรง แต่ใช้คำสั่งบน Linux ได้สม่ำเสมอกว่าในเครื่องเดียวกัน
+- Package ที่ต้องใช้ติดตั้งซ้ำได้ด้วยคำสั่งเดียว ทำให้ผู้เรียนตรวจ Version
+  และทำตามขั้นตอนได้ง่ายกว่าการอ้างอิง Path เฉพาะเครื่อง
+- Makefile แสดงขั้นตอน Compile, Link, สร้างไฟล์ HEX และ Flash อย่างเปิดเผย
+  จึงสอดคล้องกับเป้าหมายที่ต้องการมองเห็นสิ่งที่ Arduino IDE ซ่อนไว้
+- ไฟล์ Build Configuration เป็น Text File ที่เก็บใน Git และเปรียบเทียบได้
+  โดยไม่ต้องเก็บ IDE Project Metadata จำนวนมาก
+- ใช้ Editor และ Terminal ชุดเดียวกับ Project อื่นได้ ไม่ต้องสลับ Workflow
+  ตาม IDE ของ MCU แต่ละตระกูล
+- `avr-gcc` ไม่ใช่ Toolchain เฉพาะกลุ่มเล็ก Microchip มี AVR GNU Toolchain
+  ให้ใช้งาน และ Arduino AVR Platform ก็ใช้ `avr-gcc` กับ `avrdude`
+  อยู่เบื้องหลัง
+- ซอร์ส `main.c` ยังคงนำไปสร้าง MPLAB Project และ Build ด้วย XC8 ได้ภายหลัง
+
+ข้อแลกเปลี่ยนคือ WSL ต้องตั้งค่า `usbipd` ก่อนเห็น Arduino Uno, ต้องคุ้นเคย
+กับ Terminal และไม่มีปุ่ม Program/Debug แบบรวมศูนย์ของ MPLAB จึงควรบอก
+ผู้เรียนตรงไปตรงมาว่านี่คือ Workflow ที่ผู้จัดทำเลือก ไม่ใช่มาตรฐานเดียว
+ที่ทุกคนต้องใช้
+
+เหตุผลเรื่องพื้นที่เป็นบริบทเฉพาะของผู้จัดทำ เพราะมี WSL อยู่ก่อนแล้ว
+หากผู้เรียนมี MPLAB พร้อมใช้งาน แต่ยังไม่มี WSL การติดตั้ง WSL ใหม่อาจไม่ได้
+ประหยัดพื้นที่หรือขั้นตอนกว่า จึงไม่จำเป็นต้องเปลี่ยน Environment เพียงเพื่อ
+ให้เหมือนในวิดีโอ
+
+ข้อความแนะนำสำหรับใช้เปิดซีรีส์:
+
+> ซีรีส์นี้ใช้ Arduino Uno และ ATmega328P เป็น Hardware ตั้งแต่ต้น ผู้จัดทำ
+> เคยใช้ WSL Compile โค้ด Register-Level C เป็น ELF และ HEX แล้ว Flash ผ่าน
+> Uno Bootloader ได้สำเร็จ จึงนำ Workflow ที่คุ้นเคยมาจัดเป็น Roadmap
+> EP01–EP08 เครื่องที่ใช้ทำซีรีส์มี WSL และ VS Code อยู่แล้ว จึงไม่ต้องการ
+> ติดตั้ง MPLAB X, XC8 และส่วนประกอบเพิ่ม อีกทั้ง Makefile ทำให้ผู้เรียน
+> มองเห็น Compile, Link และ Flash ได้ทุกขั้นตอน การเลือก WSL ไม่ได้หมายความ
+> ว่า MPLAB หรือ Arduino IDE ไม่ดี และไม่ได้ทำให้โค้ด Native กว่าเดิม
+> ผู้เรียนสามารถใช้ MPLAB X กับ XC8 แทนได้ เพราะหัวใจของบทเรียนคือการเขียน
+> C เพื่อควบคุม Register ของ ATmega328P โดยตรง
+
+### เริ่มตามซีรีส์ด้วย WSL
+
+เปิด Ubuntu จาก Windows PowerShell:
+
+```powershell
+wsl -d Ubuntu-24.04
+```
+
+ติดตั้ง Toolchain ภายใน Ubuntu:
+
+```sh
+sudo apt update
+sudo apt install -y gcc-avr avr-libc binutils-avr avrdude make usbutils picocom
+```
+
+จากนั้นเข้า Directory ของ Repository แล้ว Build:
 
 ```sh
 make all
-```
-
-บน Windows หาก GNU Make ใช้ชื่อ `mingw32-make`:
-
-```powershell
-mingw32-make all
-```
-
-Build หรือ Flash เฉพาะ EP:
-
-```sh
 make build-selected EP=EP01_GPIO
-make flash EP=EP01_GPIO PORT=COM3
+make size EP=EP01_GPIO
+make flash EP=EP01_GPIO PORT=/dev/ttyUSB0
 ```
 
-เปลี่ยน `PORT` ให้ตรงกับระบบของคุณ และอ่าน
-[คู่มือการ Flash](docs/flashing-guide.md) ก่อน Program ฮาร์ดแวร์
+Board ที่ใช้ USB-to-Serial แบบ CH340 มักปรากฏเป็น `/dev/ttyUSB0`
+ส่วน Uno R3 ที่ใช้ ATmega16U2 มักปรากฏเป็น `/dev/ttyACM0` ให้ตรวจชื่อจริง
+ก่อน Flash อ่านขั้นตอนครบได้ใน [คู่มือติดตั้ง WSL](docs/wsl-setup.md)
+และดูการเปรียบเทียบทางเลือกใน
+[คู่มือติดตั้ง Toolchain](docs/toolchain-setup.md)
 
 ## โครงสร้าง Repository
 
@@ -103,6 +228,7 @@ avr-native-c-embedded-roadmap/
 |-- LICENSE
 |-- Makefile
 |-- docs/
+|   |-- wsl-setup.md
 |   |-- toolchain-setup.md
 |   |-- arduino-uno-pin-mapping.md
 |   |-- register-basics.md
@@ -129,7 +255,10 @@ avr-native-c-embedded-roadmap/
 
 - [หน้าผลิตภัณฑ์และ Datasheet ของ ATmega328P](https://www.microchip.com/en-us/product/atmega328p)
 - [MPLAB X IDE](https://www.microchip.com/en-us/tools-resources/develop/mplab-x-ide)
-- [MPLAB XC8 Compiler](https://www.microchip.com/en-us/tools-resources/develop/mplab-x-compilers/xc8)
+- [MPLAB XC8 Compiler](https://www.microchip.com/en-us/tools-resources/develop/mplab-xc-compilers/xc8)
+- [Microchip AVR GNU Toolchain](https://www.microchip.com/en-us/development-tool/AVR-GCC)
+- [Arduino AVR build process](https://docs.arduino.cc/arduino-cli/sketch-build-process/)
+- [การพัฒนาด้วย VS Code และ WSL](https://learn.microsoft.com/en-us/windows/wsl/tutorials/wsl-vscode)
 - [เอกสาร Arduino Uno R3](https://docs.arduino.cc/hardware/uno-rev3/)
 
 ## สิทธิ์ใช้งาน (License)
