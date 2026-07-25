@@ -55,6 +55,24 @@ Library ได้รวดเร็ว ซีรีส์นี้ไม่ไ�
 
 ## Chapter 3 — Roadmap EP01–EP08
 
+### ภาพรวม Peripheral ภายใน ATmega328P
+
+![ภาพรวม ATmega328P Peripheral Roadmap ตั้งแต่ EP01 ถึง EP08](images/atmega328p-peripheral-roadmap.png)
+
+*CPU Core ติดต่อ Peripheral ผ่าน Internal Data Bus ส่วน Pin Multiplexer
+เชื่อมหน้าที่ของ Peripheral ออกไปยังขาจริงของ Arduino Uno*
+
+ภาพนี้ช่วยให้เห็นว่า EP01–EP08 ไม่ได้เป็นหัวข้อที่แยกจากกันทั้งหมด:
+
+- `Timer` เป็นพื้นฐานของ `PWM` จึงมีลูกศรจาก EP03 ไป EP05
+- `Interrupt System` รับ Event จาก Peripheral แล้วแจ้งให้ CPU เปลี่ยนไปทำ ISR
+- `GPIO`, `UART`, `PWM`, `ADC`, `SPI` และ `I2C/TWI` ใช้ขาของ MCU ผ่าน
+  Pin Multiplexer
+- ขาหนึ่งขาอาจมีหลายหน้าที่ แต่ Firmware ต้องเลือกและตั้งค่า Peripheral
+  ให้ตรงกับหน้าที่ที่ต้องการใช้
+- ตำแหน่งกล่องในภาพจัดตามความสัมพันธ์ของ Hardware ไม่ใช่ลำดับการเรียน
+  ให้เรียนต่อเนื่องตามหมายเลข EP01–EP08 ในตารางด้านล่าง
+
 | EP | หัวข้อ | ระดับ Arduino | Register สำคัญ | ตัวอย่าง |
 | --- | --- | --- | --- | --- |
 | 01 | [GPIO](EP01_GPIO/README.md) | `pinMode`, `digitalRead`, `digitalWrite` | `DDRx`, `PORTx`, `PINx` | ปุ่มควบคุม LED |

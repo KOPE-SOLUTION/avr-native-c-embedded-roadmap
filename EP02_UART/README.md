@@ -134,6 +134,80 @@ USB ไม่ได้เชื่อมกับ USART0 โดยตรง ว�
 
 ## Chapter 4 — คำนวณ Baud Rate 9600
 
+### มองภาพรวมก่อนใช้สูตร
+
+`UBRR0` ไม่ใช่ค่า Baud Rate แต่เป็น **เลขที่ใช้บอก Hardware ว่าต้องแบ่ง
+Clock ลงกี่เท่า** ก่อนนำไปสร้างจังหวะของ USART
+
+```text
+Clock 16 MHz  →  Baud-rate Divider  →  จังหวะสำหรับส่งแต่ละ bit
+```
+
+ให้นึกถึง Clock 16 MHz เป็นเครื่องจักรที่หมุนเร็วเกินไป เราจึงต้องใส่
+ชุดเฟืองทดความเร็วหรือ Divider เพื่อให้เหลือความเร็วใกล้ 9,600 baud
+
+#### ขั้นที่ 1 — เริ่มจาก Clock ของ Arduino Uno
+
+```text
+F_CPU = 16,000,000 Hz
+```
+
+หมายความว่า ATmega328P ได้รับ Clock 16,000,000 รอบต่อวินาที
+
+#### ขั้นที่ 2 — Normal Speed ใช้ 16 ticks ต่อหนึ่ง bit
+
+USART ใน Asynchronous Normal Mode ใช้ 16 จังหวะภายในสำหรับข้อมูลหนึ่ง bit
+ถ้าต้องการส่ง 9,600 bit ต่อวินาที จึงต้องมีจังหวะภายใน:
+
+```text
+9,600 × 16 = 153,600 ticks ต่อวินาที
+```
+
+#### ขั้นที่ 3 — หาว่าต้องแบ่ง Clock ลงกี่เท่า
+
+```text
+16,000,000 / 153,600 = 104.166...
+```
+
+จึงต้องแบ่ง Clock ลงประมาณ 104 เท่า แต่ Hardware ใช้ตัวหารจริงเป็น:
+
+```text
+ตัวหารจริง = UBRR0 + 1
+```
+
+ถ้าต้องการตัวหาร 104 จึงต้องเขียน:
+
+```text
+UBRR0 + 1 = 104
+UBRR0     = 103
+```
+
+สาเหตุที่มี `+1` เพราะ Counter ของ Hardware เริ่มนับจาก 0 ถึง 103
+ซึ่งรวมทั้งหมดเป็น 104 จังหวะ
+
+ลองเปรียบเทียบค่าที่อยู่ใกล้กัน:
+
+| ค่าใน `UBRR0` | ตัวหารจริง | Baud Rate ที่ได้ | Error จาก 9,600 |
+| ---: | ---: | ---: | ---: |
+| `103` | 104 | 9,615.38 | +0.16% |
+| `104` | 105 | 9,523.81 | -0.79% |
+
+ดังนั้นเลือก `UBRR0 = 103` เพราะสร้าง Baud Rate ได้ใกล้ 9,600 มากกว่า
+
+จำเป็นลำดับสั้น ๆ ได้ดังนี้:
+
+```text
+ต้องการ 9,600 baud
+        ↓ คูณ 16 ticks ต่อ bit
+ต้องการ 153,600 ticks ต่อวินาที
+        ↓ Clock 16,000,000 หารด้วยค่านี้
+ต้องใช้ตัวหารประมาณ 104
+        ↓ ตัวหารของ Hardware คือ UBRR0 + 1
+จึงเขียน UBRR0 = 103
+```
+
+### นำแนวคิดกลับมาเขียนเป็นสูตร
+
 Baud Rate กำหนดความเร็วในการส่งสัญลักษณ์ สำหรับ UART ทั่วไปหนึ่งสัญลักษณ์
 แทนหนึ่ง bit จึงมักเรียกเป็น bit per second
 
@@ -173,16 +247,76 @@ Source Code คำนวณค่าด้วย Macro:
 `UL` หมายถึง Unsigned Long ช่วยให้การคำนวณทำในขนาดข้อมูลที่รองรับ
 16,000,000 โดยไม่ล้นแบบ Integer ขนาดเล็ก
 
-`UBRR0` แบ่งเป็น Register สองส่วน:
+### ทำไมต้องมี `UBRR0H` และ `UBRR0L`
+
+`UBRR0` เป็นค่าตัวเลขขนาด 12 bit แต่ ATmega328P เป็น MCU แบบ 8 bit
+จึงไม่สามารถเก็บค่า 12 bit นี้ไว้ใน Hardware Register ขนาด 8 bit
+เพียงช่องเดียวได้
+
+Hardware จึงแบ่งค่าเดียวออกเป็นสอง Register:
+
+![แผนภาพการแบ่งค่า UBRR0 เป็น UBRR0H และ UBRR0L](../images/ubrr0-register-split.png)
+
+*ค่า `UBRR0 = 103` เขียนเป็น Binary 12 bit ได้ `0000 0110 0111`
+โดย 4 bit ด้านซ้ายส่งไปยัง `UBRR0H` และ 8 bit ด้านขวาส่งไปยัง
+`UBRR0L`*
+
+```text
+ค่า UBRR0 ขนาด 12 bit
+
+┌─────────────────┬─────────────────────────┐
+│ bit 11 ถึง bit 8 │ bit 7 ถึง bit 0          │
+│ เก็บใน UBRR0H    │ เก็บใน UBRR0L            │
+└─────────────────┴─────────────────────────┘
+       4 bit                  8 bit
+```
+
+แม้ `UBRR0H` จะเป็น Register ขนาด 8 bit แต่ใช้เก็บค่า UBRR เฉพาะ
+4 bit ล่าง ส่วน 4 bit บนไม่ได้ใช้สำหรับค่า Baud-rate Divider
+
+สำหรับ EP02 คำนวณได้ `UBRR_VALUE = 103`
+
+```text
+103 ฐานสิบ = 0x067 ฐานสิบหก
+           = 0000 0110 0111 ฐานสอง
+
+แบ่งเป็น:
+
+bit 11..8        bit 7........0
+┌────────┐       ┌───────────────┐
+│  0000  │       │   0110 0111   │
+└────────┘       └───────────────┘
+ UBRR0H = 0        UBRR0L = 103
+```
+
+ค่า 103 ยังไม่เกิน 255 จึงใส่ได้ทั้งหมดใน `UBRR0L` และทำให้
+`UBRR0H` มีค่าเป็น 0
+
+Source Code แยกส่วนบนและส่วนล่างดังนี้:
 
 ```c
 UBRR0H = (uint8_t)(UBRR_VALUE >> 8U);
 UBRR0L = (uint8_t)UBRR_VALUE;
 ```
 
-- `UBRR0H` รับ bit ส่วนบน
-- `UBRR0L` รับ 8 bit ส่วนล่าง
-- เมื่อค่าเท่ากับ 103 ส่วนบนเป็น 0 และส่วนล่างเป็น 103
+- `UBRR_VALUE >> 8U` เลื่อน bit ไปทางขวา 8 ตำแหน่ง ตัด 8 bit
+  ส่วนล่างออก และเหลือ bit ส่วนบนสำหรับ `UBRR0H`
+- `(uint8_t)UBRR_VALUE` เก็บเฉพาะ 8 bit ล่างไว้ใน `UBRR0L`
+
+ตัวอย่าง ถ้าสมมติว่า `UBRR_VALUE = 300`:
+
+```text
+300 = 0x12C
+
+UBRR0H = 0x01 = 1
+UBRR0L = 0x2C = 44
+
+นำกลับมารวมกัน:
+(1 × 256) + 44 = 300
+```
+
+> จำสั้น ๆ: `H` ย่อมาจาก High เก็บส่วนบน และ `L` ย่อมาจาก Low
+> เก็บ 8 bit ส่วนล่าง สำหรับค่า 103 จะได้ `H = 0` และ `L = 103`
 
 ## Chapter 5 — ตั้ง USART0 เป็น 8N1
 
@@ -252,6 +386,116 @@ UCSR0C = (1U << UCSZ01) | (1U << UCSZ00);
 ```
 
 Hardware ยังเพิ่ม Start bit ให้อัตโนมัติทุก Frame
+
+![แผนภาพ UART USART 8N1 Frame และความสัมพันธ์กับ RS485](../images/uart-8n1-frame-rs485.png)
+
+*8N1 กำหนดรูปแบบของข้อมูลหนึ่ง Frame ส่วน Baud Rate กำหนดความเร็ว
+และ RS485 Transceiver เปลี่ยนสัญญาณ Logic เป็นสัญญาณ Differential
+บนสาย A/B*
+
+#### 8N1 ตั้งเพื่ออะไร
+
+8N1 ทำให้ Transmitter และ Receiver ตกลงกันว่า ข้อมูลหนึ่ง Frame เริ่มตรงไหน
+มีกี่ bit และจบตรงไหน:
+
+```text
+Start 1 bit + Data 8 bit + Parity 0 bit + Stop 1 bit
+```
+
+แม้ชื่อ 8N1 จะไม่ได้เขียน Start bit ไว้ แต่ Hardware จะเพิ่มให้อัตโนมัติ
+จึงใช้ทั้งหมด 10 bit สำหรับส่งข้อมูลหนึ่ง byte:
+
+| ส่วน | จำนวน | หน้าที่ |
+| --- | ---: | --- |
+| Start | 1 bit | เปลี่ยนจาก Idle 1 เป็น 0 เพื่อแจ้งว่า Frame เริ่มแล้ว |
+| Data | 8 bit | ส่งค่าข้อมูล `D0` ถึง `D7` โดยเริ่มจาก `D0` |
+| Parity | 0 bit | `N` หมายถึงไม่เพิ่ม Parity bit |
+| Stop | 1 bit | กลับเป็น Logic 1 เพื่อจบ Frame และเตรียม Frame ถัดไป |
+
+ดังนั้น `9600` และ `8N1` จึงตอบคนละคำถาม:
+
+```text
+9600 baud = ส่งแต่ละ bit เร็วเท่าไร
+8N1       = ข้อมูลหนึ่ง Frame มีรูปแบบอย่างไร
+```
+
+ที่ 9600 baud แบบ 8N1 หนึ่ง byte ใช้ 10 bit จึงส่งได้สูงสุดประมาณ
+`9600 / 10 = 960 bytes ต่อวินาที` โดยยังไม่รวมช่วงว่างระหว่างข้อมูล
+
+#### เชื่อมโยงกับ RS485
+
+หากเคยกำหนดค่า `9600 8N1` ให้กับอุปกรณ์ RS485 ค่าดังกล่าวไม่ได้มาจาก
+มาตรฐาน RS485 โดยตรง แต่เป็นการตั้งค่า UART/USART ที่ใช้สร้าง Bit Stream
+ก่อนส่งเข้าสู่ RS485 Transceiver
+
+```text
+UART/USART Frame → RS485 Transceiver → Differential Signal บนสาย A/B
+```
+
+RS485 Transceiver ไม่ได้รู้ว่า bit ใดเป็น Start, Data หรือ Stop แต่ทำหน้าที่
+แปลงระดับ Logic TX/RX เป็นแรงดัน Differential บนสาย A/B และแปลงกลับ
+เท่านั้น การสร้างและตีความ Frame ยังคงเป็นหน้าที่ของ UART/USART
+
+RS485 จึงไม่ได้บังคับว่าทุกระบบต้องใช้ 8N1 อุปกรณ์บางระบบอาจใช้ 8E1,
+8O1 หรือ 8N2 ได้ ต้องตั้ง Baud Rate และ Frame Format ของอุปกรณ์ทั้งสองฝั่ง
+ให้ตรงตามคู่มือของระบบนั้น
+
+#### UART Frame เกี่ยวข้องกับ Network Layer หรือไม่
+
+![ตำแหน่งของ UART RS485 และ Frame ใน OSI Model](../images/uart-rs485-osi-layers-v2.png)
+
+*UART อยู่ใกล้ Physical Layer มากที่สุด โดยมี Byte Framing แบบพื้นฐาน
+อยู่บริเวณรอยต่อ L1/L2 ส่วน Network Layer หรือ L3 ต้องมีแนวคิดอย่าง IP
+และ Routing ซึ่งไม่มีใน UART/RS485 พื้นฐาน*
+
+คำตอบสั้น ๆ คือ **ไม่เกี่ยวข้องโดยตรง** คำว่า Frame ถูกใช้ในหลายบริบท
+แต่ไม่ได้หมายความว่าทุก Frame เป็นข้อมูลของ Network Layer
+
+| คำที่พบ | สิ่งที่ครอบอยู่ | หน้าที่ | ใกล้กับ OSI Layer |
+| --- | --- | --- | --- |
+| UART 8N1 Frame | ข้อมูลหนึ่ง byte | จัด Start, Data และ Stop โดย 8N1 ไม่มี Parity bit | รอยต่อ L1/L2 |
+| Data-link/Protocol Frame | ข้อมูลหลาย byte | เพิ่ม Address, Control หรือ CRC สำหรับ Link เดียวกัน | L2 |
+| IP Packet | ข้อมูลสำหรับส่งข้าม Network | มี Source/Destination IP และใช้ Routing | L3 |
+
+ในศัพท์ของ OSI โดยทั่วไป:
+
+- Layer 2 เรียกหน่วยข้อมูลว่า **Frame**
+- Layer 3 เรียกหน่วยข้อมูลว่า **Packet**
+- แต่คำว่า UART Frame หมายถึงรูปแบบ Bit ของข้อมูลหนึ่ง byte ไม่ใช่
+  Layer 2 Frame แบบ Ethernet และไม่ใช่ Layer 3 Packet
+
+UART ไม่เข้ากับ OSI เพียง Layer เดียวอย่างสมบูรณ์ เพราะ UART ถูกสร้างมา
+สำหรับการสื่อสาร Serial ไม่ใช่ Network Stack แบบเต็ม หากต้องวางโดยประมาณ:
+
+- การเปลี่ยน byte เป็น Bit Stream และส่งผ่าน TX/RX อยู่ใกล้ L1
+- Start, Data, Parity และ Stop เป็น Byte Framing ขั้นพื้นฐานใกล้รอยต่อ L1/L2
+- UART ไม่มี Addressing, Routing หรือ CRC สำหรับข้อมูลทั้ง Packet
+- ดังนั้น UART ไม่ใช่ Network Layer
+
+ตัวอย่างจาก EP02:
+
+```text
+"LED ON"                         Application Data
+    ↓ แยกเป็นแต่ละ byte
+'L'  'E'  'D'  ' '  'O'  'N'
+    ↓ UART ครอบแต่ละ byte แยกกัน
+Start + 8 Data + Stop            UART 8N1 Frame
+    ↓
+TX/RX Logic หรือ RS485 A/B       Physical Signal
+```
+
+หากใช้ Modbus RTU ผ่าน RS485 จะเห็นหลาย Layer ซ้อนกัน:
+
+```text
+Modbus Function และ Data Model   Application
+Address + Function + Data + CRC  Modbus RTU Serial Frame
+Start + Data + Parity + Stop     UART Byte Framing
+Differential Voltage A/B         RS485 Physical Layer
+```
+
+ในระบบนี้ยังไม่มี Network Layer L3 เพราะไม่มี IP และไม่มี Router
+Device Address ของ Modbus ช่วยเลือกอุปกรณ์บน Bus แต่ไม่ได้ทำให้ Modbus RTU
+กลายเป็น IP Network
 
 ## Chapter 6 — ส่งข้อความผ่าน USART0
 
@@ -655,12 +899,17 @@ Arduino API เหมาะเมื่อเน้นพัฒนา Applicatio
 - [Arduino Uno Pin Mapping](../docs/arduino-uno-pin-mapping.md) — แปลง D0/D1/D13 เป็นขา MCU
 - [ATmega328P Datasheet](https://www.microchip.com/en-us/product/atmega328p) — USART0 Register และ Baud Rate
 - [picocom Manual](https://manpages.debian.org/testing/picocom/picocom.1.en.html) — Local Echo และ Character Mapping
+- [MODBUS Serial Line Protocol and Implementation Guide](https://www.modbus.org/docs/Modbus_over_serial_line_V1_02.pdf) — การวาง Modbus Serial ที่ L2 และ RS485 ที่ L1
+- [MODBUS Application Protocol Specification](https://modbus.org/docs/Modbus_Application_Protocol_V1_1b3.pdf) — Modbus Application Protocol ที่ L7
+- [TI RS-485 Physical Layer Overview](https://www.ti.com/document-viewer/lit/html/slla418) — RS485 และ Differential Signaling ที่ Physical Layer
 
 ## สิ่งที่เรียนรู้
 
 - เข้าใจเส้นทางข้อมูลจาก Serial Terminal ถึง USART0
 - คำนวณ UBRR และ Baud Rate Error
 - ตั้ง USART0 เป็น Asynchronous 8N1
+- แยก UART Byte Frame, Data-link Frame และ Network Packet ออกจากกัน
+- เข้าใจตำแหน่งของ UART, RS485 และ Modbus RTU ใน OSI Model
 - ส่งและรับข้อมูลด้วย `UDR0`
 - Poll `UDRE0` และ `RXC0`
 - จัดการ CR, LF และ CRLF
