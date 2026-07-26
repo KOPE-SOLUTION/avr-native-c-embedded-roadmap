@@ -399,7 +399,8 @@ Hardware ยังเพิ่ม Start bit ให้อัตโนมัติ
 มีกี่ bit และจบตรงไหน:
 
 ```text
-Start 1 bit + Data 8 bit + Parity 0 bit + Stop 1 bit
+Start 1 bit + Data 8 bit + Stop 1 bit = 10 transmitted bits
+Parity = None (no bit transmitted)
 ```
 
 แม้ชื่อ 8N1 จะไม่ได้เขียน Start bit ไว้ แต่ Hardware จะเพิ่มให้อัตโนมัติ
@@ -409,8 +410,25 @@ Start 1 bit + Data 8 bit + Parity 0 bit + Stop 1 bit
 | --- | ---: | --- |
 | Start | 1 bit | เปลี่ยนจาก Idle 1 เป็น 0 เพื่อแจ้งว่า Frame เริ่มแล้ว |
 | Data | 8 bit | ส่งค่าข้อมูล `D0` ถึง `D7` โดยเริ่มจาก `D0` |
-| Parity | 0 bit | `N` หมายถึงไม่เพิ่ม Parity bit |
+| Parity | ไม่มี bit ถูกส่ง | `N` หมายถึงไม่สร้างและไม่ส่ง Parity bit |
 | Stop | 1 bit | กลับเป็น Logic 1 เพื่อจบ Frame และเตรียม Frame ถัดไป |
+
+> **No Parity ไม่ได้หมายถึงส่ง Parity bit ที่มีค่า 0** แต่หมายถึงไม่มี
+> Parity bit และไม่มี Bit Time สำหรับ Parity อยู่ใน Frame เลย สำหรับ 8N1
+> หลังส่ง `D7` แล้ว Hardware จะส่ง Stop bit ต่อทันที
+
+เปรียบเทียบตำแหน่งของ Parity:
+
+```text
+8N1:  Start → D0 ... D7 → Stop
+                    ไม่มี Parity bit
+
+8E1:  Start → D0 ... D7 → Even Parity → Stop
+8O1:  Start → D0 ... D7 → Odd Parity  → Stop
+```
+
+Parity bit จึงอยู่ระหว่าง `D7` กับ Stop bit เฉพาะเมื่อเลือก Even หรือ Odd
+Parity เท่านั้น
 
 ดังนั้น `9600` และ `8N1` จึงตอบคนละคำถาม:
 
@@ -898,6 +916,7 @@ Arduino API เหมาะเมื่อเน้นพัฒนา Applicatio
 - [Register พื้นฐาน](../docs/register-basics.md) — ทบทวน Register และ Bit Mask
 - [Arduino Uno Pin Mapping](../docs/arduino-uno-pin-mapping.md) — แปลง D0/D1/D13 เป็นขา MCU
 - [ATmega328P Datasheet](https://www.microchip.com/en-us/product/atmega328p) — USART0 Register และ Baud Rate
+- [ATmega328P USART Frame Formats — Section 19.4](https://ww1.microchip.com/downloads/en/DeviceDoc/Atmel-7810-Automotive-Microcontrollers-ATmega328P_Datasheet.pdf) — Parity เป็น Optional และอยู่ก่อน Stop เฉพาะเมื่อเปิดใช้
 - [picocom Manual](https://manpages.debian.org/testing/picocom/picocom.1.en.html) — Local Echo และ Character Mapping
 - [MODBUS Serial Line Protocol and Implementation Guide](https://www.modbus.org/docs/Modbus_over_serial_line_V1_02.pdf) — การวาง Modbus Serial ที่ L2 และ RS485 ที่ L1
 - [MODBUS Application Protocol Specification](https://modbus.org/docs/Modbus_Application_Protocol_V1_1b3.pdf) — Modbus Application Protocol ที่ L7
