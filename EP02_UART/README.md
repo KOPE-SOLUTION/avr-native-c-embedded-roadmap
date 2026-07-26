@@ -330,7 +330,162 @@ Register ที่ใช้ตั้งค่า USART0:
 | `UCSR0C` | กำหนด Mode, Parity, Stop bit และ Data bits |
 | `UDR0` | Data Register สำหรับส่งหรือรับข้อมูลหนึ่ง byte |
 
-ฟังก์ชันตั้งค่า:
+> อ้างอิง: Datasheet DS40002061B หัวข้อ 20.11.2–20.11.4 หน้า 200–203
+>
+> Datasheet ใช้ชื่อ `UCSRnA`, `UCSRnB` และ `UCSRnC` เพราะ `n`
+> หมายถึงหมายเลขของ USART เมื่อใช้ ATmega328P ซึ่งมี USART0 ให้แทน `n`
+> ด้วย `0` จึงกลายเป็น `UCSR0A`, `UCSR0B` และ `UCSR0C`
+
+### อย่าจำแค่ตัวอักษร ให้จำคำถามของแต่ละ Register
+
+| Register | ภาพจำ | คำถามที่ตอบ |
+| --- | --- | --- |
+| `UCSR0A` | แผงไฟสถานะ | ตอนนี้ USART พร้อมหรือเกิดข้อผิดพลาดอะไร และใช้ Double Speed หรือไม่ |
+| `UCSR0B` | สวิตช์เปิดระบบ | จะเปิด Receiver, Transmitter หรือ Interrupt ตัวใด |
+| `UCSR0C` | ใบกำหนดกติกา | ข้อมูลหนึ่ง Frame ใช้ Mode, Parity, Stop bit และ Data bits แบบใด |
+
+ตัวอักษร A, B และ C ไม่ได้หมายถึงลำดับการทำงานว่า A ต้องทำก่อน B เสมอ
+แต่เป็น Register สามกลุ่มที่รับผิดชอบรายละเอียดคนละด้าน
+
+### `UCSR0A` — ดูสถานะและเลือกความเร็ว
+
+```text
+bit       7      6       5      4      3      2      1       0
+       +------+------+-------+------+------+------+-------+-------+
+UCSR0A | RXC0 | TXC0 | UDRE0 | FE0  | DOR0 | UPE0 | U2X0  | MPCM0 |
+       +------+------+-------+------+------+------+-------+-------+
+         <----------- Status Flag ----------->  <- ตัวเลือก Mode ->
+```
+
+| Bit | เมื่อมีค่าเป็น 1 หมายความว่า |
+| --- | --- |
+| `RXC0` | มีข้อมูลที่รับมาแล้วและยังไม่ได้อ่านอยู่ใน Receive Buffer |
+| `TXC0` | ส่งครบทั้ง Frame แล้ว รวมถึง Stop bit |
+| `UDRE0` | ช่องรับข้อมูลสำหรับส่งว่างแล้ว สามารถเขียน byte ใหม่ลง `UDR0` ได้ |
+| `FE0` | พบ Frame Error เพราะ Stop bit ที่รับมาไม่เป็น Logic 1 |
+| `DOR0` | เกิด Data OverRun เพราะข้อมูลใหม่เข้ามาขณะ Receive Buffer ยังเต็ม |
+| `UPE0` | พบ Parity Error เมื่อเปิดใช้ Parity |
+| `U2X0` | ใช้ Double Speed ใน Asynchronous Mode โดยลดตัวหารจาก 16 เหลือ 8 |
+| `MPCM0` | เปิด Multi-processor Communication Mode |
+
+ดังนั้นคำว่า Status Flag หมายถึง Bit ที่ Hardware เปลี่ยนค่าเพื่อรายงานสถานะ
+ให้ Program อ่าน ไม่ใช่ค่าที่ Program ต้องคอยเขียนเองทั้งหมด ตัวอย่างเช่น:
+
+```c
+while ((UCSR0A & (1U << UDRE0)) == 0U) {
+    /* รอจน Hardware แจ้งว่าพร้อมรับ byte ถัดไป */
+}
+```
+
+บรรทัดนี้ไม่ได้ถามว่า `UCSR0A` ทั้ง Register เท่ากับเท่าไร แต่ Mask
+เพื่อดูเฉพาะ `UDRE0`
+
+อีกจุดที่สำคัญคือ:
+
+```c
+UCSR0A = 0U;
+```
+
+ไม่ได้หมายความว่าอ่าน `UCSR0A` กลับมาแล้วทุก Bit จะเป็น 0 ตลอดเวลา
+บรรทัดนี้เลือก `U2X0 = 0` และ `MPCM0 = 0` ส่วน Status Flag จะเปลี่ยนตาม
+Hardware เช่น `UDRE0` มีค่าเริ่มต้นเป็น 1 เพราะ Transmit Buffer พร้อมรับข้อมูล
+
+> Register บาง Bit มีกฎการเขียนพิเศษ เช่น `TXC0` ล้าง Flag ด้วยการเขียน 1
+> จึงควรอ่านคำอธิบาย Read/Write ของแต่ละ Bit ใน Datasheet ไม่ควรสรุปว่า
+> การเขียน 1 หมายถึง “เปิด” สำหรับทุก Register
+
+### `UCSR0B` — เปิดส่วนที่จะใช้งาน
+
+```text
+bit        7       6       5      4      3       2      1      0
+       +-------+-------+-------+------+------+-------+------+------+
+UCSR0B | RXCIE0| TXCIE0| UDRIE0| RXEN0| TXEN0| UCSZ02| RXB80| TXB80|
+       +-------+-------+-------+------+------+-------+------+------+
+         <--- Interrupt --->    <- RX/TX ->  < Character/9th bit >
+```
+
+| กลุ่ม Bit | หน้าที่ | ค่าใน EP02 |
+| --- | --- | --- |
+| `RXCIE0`, `TXCIE0`, `UDRIE0` | เปิด Interrupt เมื่อรับเสร็จ ส่งเสร็จ หรือช่องส่งว่าง | `0` เพราะใช้ Polling |
+| `RXEN0` | เปิดวงจร Receiver และให้ USART ควบคุมขา RX | `1` |
+| `TXEN0` | เปิดวงจร Transmitter และให้ USART ควบคุมขา TX | `1` |
+| `UCSZ02` | Bit บนของตัวเลือก Character Size | `0` เพื่อใช้ข้อมูล 8 bit |
+| `RXB80`, `TXB80` | Data bit ที่ 9 เมื่อใช้ Frame แบบ 9-bit | `0` เพราะไม่ได้ใช้ |
+
+คำสั่งใน EP02 ตั้งเพียง `RXEN0` และ `TXEN0`:
+
+```text
+(1 << RXEN0) = 0001 0000
+(1 << TXEN0) = 0000 1000
+OR รวมกัน      = 0001 1000 = 0x18
+```
+
+```c
+UCSR0B = (1U << RXEN0) | (1U << TXEN0);
+```
+
+จึงแปลตรงตัวว่า “เปิดรับและเปิดส่ง ส่วน Interrupt ยังไม่เปิด”
+
+### `UCSR0C` — กำหนดกติกาของ Frame
+
+```text
+bit         7        6       5      4      3       2       1       0
+       +--------+--------+------+------+-------+-------+-------+-------+
+UCSR0C | UMSEL01| UMSEL00| UPM01| UPM00| USBS0 | UCSZ01| UCSZ00| UCPOL0|
+       +--------+--------+------+------+-------+-------+-------+-------+
+         <- Mode ->       <-Parity-> Stop bit  <- Data bits ->  Clock
+```
+
+สำหรับ Asynchronous 8N1 ต้องการค่า:
+
+| กลุ่ม Bit | ค่า | ความหมาย |
+| --- | --- | --- |
+| `UMSEL01:0` | `00` | Asynchronous USART |
+| `UPM01:0` | `00` | ปิด Parity จึงไม่มี Parity bit ถูกส่งใน Frame |
+| `USBS0` | `0` | ส่ง 1 Stop bit |
+| `UCSZ02:0` | `011` | ใช้ข้อมูล 8 bit โดย `UCSZ02` อยู่ใน `UCSR0B` |
+| `UCPOL0` | `0` | ไม่ใช้ใน Asynchronous Mode |
+
+มีเพียง `UCSZ01` และ `UCSZ00` ที่ต้องเป็น 1:
+
+```text
+(1 << UCSZ01) = 0000 0100
+(1 << UCSZ00) = 0000 0010
+OR รวมกัน       = 0000 0110 = 0x06
+```
+
+```c
+UCSR0C = (1U << UCSZ01) | (1U << UCSZ00);
+```
+
+Bit อื่นเป็น 0 เพราะการ Assignment ด้วย `=` เขียนค่าทั้ง 8 bit ลง Register
+ผลลัพธ์จึงเป็น Asynchronous, No parity, 1 Stop bit และ 8 Data bits
+
+### ทั้งสาม Register ทำงานร่วมกันอย่างไร
+
+```text
+การส่ง:
+การตั้งค่า: UCSR0B เปิด TX + UCSR0C กำหนด Frame + UBRR0/U2X0 กำหนดความเร็ว
+เส้นทางข้อมูล: CPU -> UDR0 -> USART Transmitter -> ขา TX
+สถานะย้อนกลับ: UCSR0A รายงาน UDRE0 และ TXC0 ให้ CPU
+
+การรับ:
+การตั้งค่า: UCSR0B เปิด RX + UCSR0C กำหนด Frame + UBRR0/U2X0 กำหนดความเร็ว
+เส้นทางข้อมูล: ขา RX -> USART Receiver -> UDR0 -> CPU
+สถานะย้อนกลับ: UCSR0A รายงาน RXC0, FE0, DOR0 หรือ UPE0 ให้ CPU
+```
+
+สรุปสั้นที่สุด:
+
+```text
+UBRR0 + U2X0 กำหนด Baud Rate
+UCSR0A         รายงานสถานะและมีตัวเลือก U2X0/MPCM0
+UCSR0B         เปิดวงจรและ Interrupt ที่จะใช้งาน
+UCSR0C         กำหนดรูปแบบ Frame
+UDR0           ถือข้อมูลหนึ่ง byte ที่กำลังส่งหรือรับ
+```
+
+ฟังก์ชันตั้งค่าที่ใช้ใน EP02:
 
 ```c
 static void uart_init(void)
