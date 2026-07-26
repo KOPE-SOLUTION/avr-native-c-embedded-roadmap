@@ -4,13 +4,11 @@
 
 static volatile uint8_t led_state;
 
-ISR(INT0_vect)
-{
+ISR(INT0_vect){
     led_state ^= 1U;
 }
 
-static void int0_init_falling_edge(void)
-{
+static void int0_init_falling_edge(void){
     /* Falling Edge: ISC01 = 1 และ ISC00 = 0 */
     EICRA = (EICRA & ~((1U << ISC01) | (1U << ISC00))) |
             (1U << ISC01);
@@ -19,8 +17,7 @@ static void int0_init_falling_edge(void)
     EIMSK |= (1U << INT0); /* เปิด External Interrupt 0 */
 }
 
-int main(void)
-{
+int main(void){
     DDRB |= (1U << DDB5);
     PORTB &= ~(1U << PORTB5);
 
@@ -30,10 +27,10 @@ int main(void)
     int0_init_falling_edge();
     sei();
 
-    while (1) {
-        if (led_state != 0U) {
+    while (1){
+        if (led_state != 0U){
             PORTB |= (1U << PORTB5);
-        } else {
+        } else{
             PORTB &= ~(1U << PORTB5);
         }
     }

@@ -10,8 +10,7 @@
 #define BAUD_RATE   9600UL
 #define UBRR_VALUE  ((F_CPU / (16UL * BAUD_RATE)) - 1UL)
 
-static void uart_init(void)
-{
+static void uart_init(void){
     UBRR0H = (uint8_t)(UBRR_VALUE >> 8U);
     UBRR0L = (uint8_t)UBRR_VALUE;
     UCSR0A = 0U;
@@ -19,80 +18,73 @@ static void uart_init(void)
     UCSR0C = (1U << UCSZ01) | (1U << UCSZ00);
 }
 
-static void uart_putchar(char character)
-{
-    if (character == '\n') {
-        while ((UCSR0A & (1U << UDRE0)) == 0U) {
+static void uart_putchar(char character){
+    if (character == '\n'){
+        while ((UCSR0A & (1U << UDRE0)) == 0U){
             /* รอให้ Register พร้อม */
         }
         UDR0 = (uint8_t)'\r';
     }
 
-    while ((UCSR0A & (1U << UDRE0)) == 0U) {
+    while ((UCSR0A & (1U << UDRE0)) == 0U){
         /* รอให้ Register พร้อม */
     }
     UDR0 = (uint8_t)character;
 }
 
-static void uart_puts(const char *text)
-{
-    while (*text != '\0') {
+static void uart_puts(const char *text){
+    while (*text != '\0'){
         uart_putchar(*text);
         text++;
     }
 }
 
-static void uart_print_u16(uint16_t value)
-{
+static void uart_print_u16(uint16_t value){
     char digits[5];
     uint8_t count = 0U;
 
-    do {
+    do{
         digits[count] = (char)('0' + (value % 10U));
         count++;
         value /= 10U;
     } while (value != 0U);
 
-    while (count != 0U) {
+    while (count != 0U){
         count--;
         uart_putchar(digits[count]);
     }
 }
 
-static void pwm1a_init_fast_8bit(void)
-{
+static void pwm1a_init_fast_8bit(void){
     DDRB |= (1U << DDB1); /* OC1A / D9 */
     TCCR1A = (1U << COM1A1) | (1U << WGM10);
     TCCR1B = (1U << WGM12) | (1U << CS11) | (1U << CS10);
     OCR1A = 0U;
 }
 
-static void adc_init(void)
-{
+static void adc_init(void){
     ADMUX = (1U << REFS0); /* ใช้ AVCC เป็น Reference และเลือก ADC0 Channel */
     ADCSRA = (1U << ADEN) |
               (1U << ADPS2) | (1U << ADPS1) | (1U << ADPS0);
     DIDR0 |= (1U << ADC0D);
 }
 
-static uint16_t adc_read(void)
-{
+static uint16_t adc_read(void){
     ADCSRA |= (1U << ADSC);
-    while ((ADCSRA & (1U << ADSC)) != 0U) {
+    while ((ADCSRA & (1U << ADSC)) != 0U){
         /* รอให้ Conversion เสร็จ */
     }
     return ADC;
 }
 
-int main(void)
-{
+int main(void){
     uart_init();
     pwm1a_init_fast_8bit();
     adc_init();
 
     uart_puts("ADC to PWM ready\n");
 
-    while (1) {
+    while (1){
         const uint16_t adc_value = adc_read();
         const uint8_t pwm_value = (uint8_t)(adc_value >> 2U);
 

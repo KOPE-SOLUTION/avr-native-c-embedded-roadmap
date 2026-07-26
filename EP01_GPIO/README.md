@@ -286,9 +286,9 @@ PORTD |= (1U << BUTTON_PULLUP_BIT);
 ## Chapter 7 — อ่านปุ่มและควบคุม LED
 
 ```c
-if ((PIND & (1U << BUTTON_INPUT_BIT)) == 0U) {
+if ((PIND & (1U << BUTTON_INPUT_BIT)) == 0U){
     PORTB |= (1U << LED_OUTPUT_BIT);
-} else {
+} else{
     PORTB &= ~(1U << LED_OUTPUT_BIT);
 }
 ```
@@ -325,17 +325,16 @@ PB5 ถูกกำหนดเป็น Output แล้ว `PORTB` จึง�
 #define BUTTON_PULLUP_BIT    PORTD2
 #define BUTTON_INPUT_BIT     PIND2
 
-int main(void)
-{
+int main(void){
     DDRB |= (1U << LED_DDR_BIT);
 
     DDRD &= ~(1U << BUTTON_DDR_BIT);
     PORTD |= (1U << BUTTON_PULLUP_BIT);
 
-    while (1) {
-        if ((PIND & (1U << BUTTON_INPUT_BIT)) == 0U) {
+    while (1){
+        if ((PIND & (1U << BUTTON_INPUT_BIT)) == 0U){
             PORTB |= (1U << LED_OUTPUT_BIT);
-        } else {
+        } else{
             PORTB &= ~(1U << LED_OUTPUT_BIT);
         }
     }

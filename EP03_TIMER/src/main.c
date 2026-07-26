@@ -9,8 +9,7 @@
 #define TIMER_TICK_HZ    1000UL
 #define OCR1A_VALUE      ((F_CPU / TIMER1_PRESCALER / TIMER_TICK_HZ) - 1UL)
 
-static void timer1_init_ctc_1ms(void)
-{
+static void timer1_init_ctc_1ms(void){
     TCCR1A = 0U;
     TCCR1B = 0U;
     TCNT1 = 0U;
@@ -23,20 +22,19 @@ static void timer1_init_ctc_1ms(void)
     TCCR1B = (1U << WGM12) | (1U << CS11) | (1U << CS10);
 }
 
-int main(void)
-{
+int main(void){
     uint16_t elapsed_ms = 0U;
 
     DDRB |= (1U << DDB5);
     PORTB &= ~(1U << PORTB5);
     timer1_init_ctc_1ms();
 
-    while (1) {
-        if ((TIFR1 & (1U << OCF1A)) != 0U) {
+    while (1){
+        if ((TIFR1 & (1U << OCF1A)) != 0U){
             TIFR1 = (1U << OCF1A); /* เขียน 1 เพื่อล้าง Flag */
             elapsed_ms++;
 
-            if (elapsed_ms >= 1000U) {
+            if (elapsed_ms >= 1000U){
                 elapsed_ms = 0U;
                 PORTB ^= (1U << PORTB5);
             }

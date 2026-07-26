@@ -10,8 +10,7 @@
 #define BUTTON_PULLUP_BIT    PORTD2 /* Uno D2: bit เปิด Pull-up ของ PD2 */
 #define BUTTON_INPUT_BIT     PIND2  /* Uno D2: bit อ่านขาเข้าของ PD2 */
 
-int main(void)
-{
+int main(void){
     /* 1. กำหนด PB5 (Uno D13) เป็น Output สำหรับ LED บนบอร์ด */
     DDRB |= (1U << LED_DDR_BIT);
 
@@ -19,11 +18,11 @@ int main(void)
     DDRD &= ~(1U << BUTTON_DDR_BIT);
     PORTD |= (1U << BUTTON_PULLUP_BIT);
 
-    while (1) {
+    while (1){
         /* Pull-up ทำให้การกดปุ่มอ่านได้ LOW หรือ Active-low */
-        if ((PIND & (1U << BUTTON_INPUT_BIT)) == 0U) {
+        if ((PIND & (1U << BUTTON_INPUT_BIT)) == 0U){
             PORTB |= (1U << LED_OUTPUT_BIT);   /* กำหนด PB5 เป็น 1: เปิด LED */
-        } else {
+        } else{
             PORTB &= ~(1U << LED_OUTPUT_BIT); /* ล้าง PB5 เป็น 0: ปิด LED */
         }
     }

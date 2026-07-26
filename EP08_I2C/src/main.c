@@ -18,8 +18,7 @@
 #define TWI_RESTART_SENT 0x10U
 #define TWI_SLA_W_ACK   0x18U
 
-static void uart_init(void)
-{
+static void uart_init(void){
     UBRR0H = (uint8_t)(UBRR_VALUE >> 8U);
     UBRR0L = (uint8_t)UBRR_VALUE;
     UCSR0A = 0U;
@@ -27,107 +26,99 @@ static void uart_init(void)
     UCSR0C = (1U << UCSZ01) | (1U << UCSZ00);
 }
 
-static void uart_putchar(char character)
-{
-    if (character == '\n') {
-        while ((UCSR0A & (1U << UDRE0)) == 0U) {
+static void uart_putchar(char character){
+    if (character == '\n'){
+        while ((UCSR0A & (1U << UDRE0)) == 0U){
             /* รอให้ Register พร้อม */
         }
         UDR0 = (uint8_t)'\r';
     }
 
-    while ((UCSR0A & (1U << UDRE0)) == 0U) {
+    while ((UCSR0A & (1U << UDRE0)) == 0U){
         /* รอให้ Register พร้อม */
     }
     UDR0 = (uint8_t)character;
 }
 
-static void uart_puts(const char *text)
-{
-    while (*text != '\0') {
+static void uart_puts(const char *text){
+    while (*text != '\0'){
         uart_putchar(*text);
         text++;
     }
 }
 
-static void uart_print_hex8(uint8_t value)
-{
+static void uart_print_hex8(uint8_t value){
     static const char hex[] = "0123456789ABCDEF";
     uart_putchar(hex[value >> 4U]);
     uart_putchar(hex[value & 0x0FU]);
 }
 
-static void uart_print_u8(uint8_t value)
-{
+static void uart_print_u8(uint8_t value){
     char digits[3];
     uint8_t count = 0U;
 
-    do {
+    do{
         digits[count] = (char)('0' + (value % 10U));
         count++;
         value /= 10U;
     } while (value != 0U);
 
-    while (count != 0U) {
+    while (count != 0U){
         count--;
         uart_putchar(digits[count]);
     }
 }
 
-static void twi_init(void)
-{
+static void twi_init(void){
     TWSR &= ~((1U << TWPS1) | (1U << TWPS0)); /* Prescaler เท่ากับ 1 */
     TWBR = (uint8_t)TWBR_VALUE;
     TWCR = (1U << TWEN);
 }
 
-static bool twi_wait(void)
-{
+static bool twi_wait(void){
     uint16_t timeout = 0xFFFFU;
 
-    while ((TWCR & (1U << TWINT)) == 0U) {
+    while ((TWCR & (1U << TWINT)) == 0U){
         timeout--;
-        if (timeout == 0U) {
+        if (timeout == 0U){
             return false;
         }
     }
     return true;
 }
 
-static void twi_stop(void)
-{
+static void twi_stop(void){
     uint16_t timeout = 0xFFFFU;
 
     TWCR = (1U << TWINT) | (1U << TWEN) | (1U << TWSTO);
 
     /* Hardware ล้าง TWSTO เมื่อส่ง STOP Condition ลง Bus แล้ว */
-    while ((TWCR & (1U << TWSTO)) != 0U) {
+    while ((TWCR & (1U << TWSTO)) != 0U){
         timeout--;
-        if (timeout == 0U) {
+        if (timeout == 0U){
             break;
         }
     }
 }
 
-static bool twi_probe(uint8_t address)
-{
+static bool twi_probe(uint8_t address){
     uint8_t status;
 
     TWCR = (1U << TWINT) | (1U << TWEN) | (1U << TWSTA);
-    if (!twi_wait()) {
+    if (!twi_wait()){
         twi_stop();
         return false;
     }
 
     status = TWSR & TWI_STATUS_MASK;
-    if ((status != TWI_START_SENT) && (status != TWI_RESTART_SENT)) {
+    if ((status != TWI_START_SENT) && (status != TWI_RESTART_SENT)){
         twi_stop();
         return false;
     }
 
     TWDR = (uint8_t)(address << 1U); /* SLA+W */
     TWCR = (1U << TWINT) | (1U << TWEN);
-    if (!twi_wait()) {
+    if (!twi_wait()){
         twi_stop();
         return false;
     }
@@ -137,8 +128,7 @@ static bool twi_probe(uint8_t address)
     return status == TWI_SLA_W_ACK;
 }
 
-int main(void)
-{
+int main(void){
     uint8_t address;
     uint8_t found;
     uint8_t second;
@@ -147,12 +137,12 @@ int main(void)
     twi_init();
     uart_puts("Native AVR TWI scanner ready\n");
 
-    while (1) {
+    while (1){
         found = 0U;
         uart_puts("\nI2C scan\n");
 
-        for (address = 0x08U; address <= 0x77U; address++) {
-            if (twi_probe(address)) {
+        for (address = 0x08U; address <= 0x77U; address++){
+            if (twi_probe(address)){
                 uart_puts("Found 0x");
                 uart_print_hex8(address);
                 uart_putchar('\n');
@@ -164,7 +154,7 @@ int main(void)
         uart_print_u8(found);
         uart_putchar('\n');
 
-        for (second = 0U; second < 5U; second++) {
+        for (second = 0U; second < 5U; second++){
             _delay_ms(1000.0);
         }
     }

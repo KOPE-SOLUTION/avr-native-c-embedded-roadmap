@@ -10,8 +10,7 @@
 #define UBRR_VALUE  ((F_CPU / (16UL * BAUD_RATE)) - 1UL)
 #define COMMAND_CAPACITY 16U
 
-static void uart_init(void)
-{
+static void uart_init(void){
     UBRR0H = (uint8_t)(UBRR_VALUE >> 8U);
     UBRR0L = (uint8_t)UBRR_VALUE;
 
@@ -20,43 +19,38 @@ static void uart_init(void)
     UCSR0C = (1U << UCSZ01) | (1U << UCSZ00); /* 8N1. */
 }
 
-static void uart_putchar(char character)
-{
-    if (character == '\n') {
-        while ((UCSR0A & (1U << UDRE0)) == 0U) {
+static void uart_putchar(char character){
+    if (character == '\n'){
+        while ((UCSR0A & (1U << UDRE0)) == 0U){
             /* รอให้ Transmit Register พร้อม */
         }
         UDR0 = (uint8_t)'\r';
     }
 
-    while ((UCSR0A & (1U << UDRE0)) == 0U) {
+    while ((UCSR0A & (1U << UDRE0)) == 0U){
         /* รอให้ Transmit Register พร้อม */
     }
     UDR0 = (uint8_t)character;
 }
 
-static void uart_puts(const char *text)
-{
-    while (*text != '\0') {
+static void uart_puts(const char *text){
+    while (*text != '\0'){
         uart_putchar(*text);
         text++;
     }
 }
 
-static bool uart_rx_ready(void)
-{
+static bool uart_rx_ready(void){
     return (UCSR0A & (1U << RXC0)) != 0U;
 }
 
-static char uart_getchar(void)
-{
+static char uart_getchar(void){
     return (char)UDR0;
 }
 
-static bool text_equal(const char *left, const char *right)
-{
-    while ((*left != '\0') && (*right != '\0')) {
-        if (*left != *right) {
+static bool text_equal(const char *left, const char *right){
+    while ((*left != '\0') && (*right != '\0')){
+        if (*left != *right){
             return false;
         }
         left++;
@@ -66,27 +60,25 @@ static bool text_equal(const char *left, const char *right)
     return *left == *right;
 }
 
-static void handle_command(const char *command)
-{
-    if (text_equal(command, "LED ON")) {
+static void handle_command(const char *command){
+    if (text_equal(command, "LED ON")){
         PORTB |= (1U << PORTB5);
         uart_puts("LED is ON\n");
-    } else if (text_equal(command, "LED OFF")) {
+    } else if (text_equal(command, "LED OFF")){
         PORTB &= ~(1U << PORTB5);
         uart_puts("LED is OFF\n");
-    } else if (text_equal(command, "STATUS?")) {
-        if ((PORTB & (1U << PORTB5)) != 0U) {
+    } else if (text_equal(command, "STATUS?")){
+        if ((PORTB & (1U << PORTB5)) != 0U){
             uart_puts("LED status: ON\n");
-        } else {
+        } else{
             uart_puts("LED status: OFF\n");
         }
-    } else if (*command != '\0') {
+    } else if (*command != '\0'){
         uart_puts("Unknown command\n");
     }
 }
 
-int main(void)
-{
+int main(void){
     char command[COMMAND_CAPACITY];
     uint8_t length = 0U;
 
@@ -97,23 +89,23 @@ int main(void)
     uart_puts("UART command ready\n");
     uart_puts("Commands: LED ON, LED OFF, STATUS?\n> ");
 
-    while (1) {
-        if (uart_rx_ready()) {
+    while (1){
+        if (uart_rx_ready()){
             const char received = uart_getchar();
 
-            if (received == '\r') {
+            if (received == '\r'){
                 continue;
             }
 
-            if (received == '\n') {
+            if (received == '\n'){
                 command[length] = '\0';
                 handle_command(command);
                 length = 0U;
                 uart_puts("> ");
-            } else if (length < (COMMAND_CAPACITY - 1U)) {
+            } else if (length < (COMMAND_CAPACITY - 1U)){
                 command[length] = received;
                 length++;
-            } else {
+            } else{
                 length = 0U;
                 uart_puts("\nCommand too long\n> ");
             }

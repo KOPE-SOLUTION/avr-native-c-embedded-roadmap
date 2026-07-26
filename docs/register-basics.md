@@ -16,7 +16,7 @@ PORTB &= ~(1U << PORTB5);
 PORTB ^= (1U << PORTB5);
 
 /* ตรวจสอบ bit */
-if ((PINB & (1U << PINB5)) != 0U) {
+if ((PINB & (1U << PINB5)) != 0U){
     /* ขาอยู่ในสถานะ HIGH */
 }
 ```

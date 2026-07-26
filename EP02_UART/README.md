@@ -372,7 +372,7 @@ UCSR0A | RXC0 | TXC0 | UDRE0 | FE0  | DOR0 | UPE0 | U2X0  | MPCM0 |
 ให้ Program อ่าน ไม่ใช่ค่าที่ Program ต้องคอยเขียนเองทั้งหมด ตัวอย่างเช่น:
 
 ```c
-while ((UCSR0A & (1U << UDRE0)) == 0U) {
+while ((UCSR0A & (1U << UDRE0)) == 0U){
     /* รอจน Hardware แจ้งว่าพร้อมรับ byte ถัดไป */
 }
 ```
@@ -409,8 +409,9 @@ UCSR0B | RXCIE0| TXCIE0| UDRIE0| RXEN0| TXEN0| UCSZ02| RXB80| TXB80|
 | `RXCIE0`, `TXCIE0`, `UDRIE0` | เปิด Interrupt เมื่อรับเสร็จ ส่งเสร็จ หรือช่องส่งว่าง | `0` เพราะใช้ Polling |
 | `RXEN0` | เปิดวงจร Receiver และให้ USART ควบคุมขา RX | `1` |
 | `TXEN0` | เปิดวงจร Transmitter และให้ USART ควบคุมขา TX | `1` |
-| `UCSZ02` | Bit บนของตัวเลือก Character Size | `0` เพื่อใช้ข้อมูล 8 bit |
-| `RXB80`, `TXB80` | Data bit ที่ 9 เมื่อใช้ Frame แบบ 9-bit | `0` เพราะไม่ได้ใช้ |
+| `UCSZ02` | Bit บนของตัวเลือก Character Size | `0`; ต้องรวมกับ `UCSZ01:0 = 11` จึงแปลว่า 8 bit |
+| `RXB80` | Data bit ที่ 9 ของข้อมูลที่รับ เป็น Bit แบบอ่านอย่างเดียว | ไม่ใช้ใน Frame 8-bit |
+| `TXB80` | Data bit ที่ 9 ของข้อมูลที่จะส่ง | เป็น `0` และไม่ใช้ใน Frame 8-bit |
 
 คำสั่งใน EP02 ตั้งเพียง `RXEN0` และ `TXEN0`:
 
@@ -425,6 +426,10 @@ UCSR0B = (1U << RXEN0) | (1U << TXEN0);
 ```
 
 จึงแปลตรงตัวว่า “เปิดรับและเปิดส่ง ส่วน Interrupt ยังไม่เปิด”
+
+การใช้ `=` หมายถึงเขียนค่าทั้ง Register ดังนั้น Control Bit อื่นที่ไม่ได้อยู่
+ด้านขวาจะได้รับค่า 0 แต่ไม่ได้หมายความว่า Program สามารถบังคับ Bit แบบ
+Read-only อย่าง `RXB80` ให้เป็น 0 ได้
 
 ### `UCSR0C` — กำหนดกติกาของ Frame
 
@@ -488,8 +493,7 @@ UDR0           ถือข้อมูลหนึ่ง byte ที่กำ�
 ฟังก์ชันตั้งค่าที่ใช้ใน EP02:
 
 ```c
-static void uart_init(void)
-{
+static void uart_init(void){
     UBRR0H = (uint8_t)(UBRR_VALUE >> 8U);
     UBRR0L = (uint8_t)UBRR_VALUE;
 
@@ -521,18 +525,47 @@ UCSR0B = (1U << RXEN0) | (1U << TXEN0);
 | USART Interrupt bits | 0 | ใช้ Polling ใน EP02 |
 | `UCSZ02` | 0 | ทำงานร่วมกับ `UCSZ01:0` เพื่อเลือกข้อมูล 8 bit |
 
-### กำหนด Frame Format แบบ 8N1
+### รวม `UCSR0B` และ `UCSR0C` เป็น Frame Format แบบ 8N1
+
+จุดสำคัญคือ Frame Format ไม่ได้มาจากบรรทัด `UCSR0C` เพียงบรรทัดเดียว
+เพราะ `UCSZ02` ซึ่งเป็น Bit บนของ Character Size อยู่ใน `UCSR0B`:
 
 ```c
+UCSR0B = (1U << RXEN0) | (1U << TXEN0);
 UCSR0C = (1U << UCSZ01) | (1U << UCSZ00);
 ```
 
-| ส่วนของ Frame | การตั้งค่า | ความหมาย |
-| --- | --- | --- |
-| Mode | `UMSEL01:0 = 00` | Asynchronous USART |
-| Data bits | `UCSZ02:0 = 011` | 8 data bits |
-| Parity | `UPM01:0 = 00` | None |
-| Stop bit | `USBS0 = 0` | 1 stop bit |
+| ส่วนของ Frame | Bit และ Register | ค่านี้เกิดจาก Code อย่างไร | ผลลัพธ์ |
+| --- | --- | --- | --- |
+| Mode | `UMSEL01:0` ใน `UCSR0C` | ไม่ได้ Set bit 7:6 จึงเป็น `00` | Asynchronous USART |
+| Data bits | `UCSZ02` ใน `UCSR0B` + `UCSZ01:0` ใน `UCSR0C` | `UCSZ02 = 0` และ Set `UCSZ01:0 = 11` รวมเป็น `011` | 8 data bits |
+| Parity | `UPM01:0` ใน `UCSR0C` | ไม่ได้ Set bit 5:4 จึงเป็น `00` | None |
+| Stop bit | `USBS0` ใน `UCSR0C` | ไม่ได้ Set bit 3 จึงเป็น `0` | 1 stop bit |
+
+มองเป็นค่าของ Register จะได้:
+
+```text
+UCSR0B = 0001 1000
+bit 4: RXEN0  = 1
+bit 3: TXEN0  = 1
+bit 2: UCSZ02 = 0
+
+UCSR0C = 0000 0110
+bit 2: UCSZ01 = 1
+bit 1: UCSZ00 = 1
+
+Character Size = UCSZ02:0 = 0 11 = 8 data bits
+```
+
+ดังนั้น Code และตารางกำลังแสดงคนละมุม:
+
+- Code แสดงเฉพาะ Bit ที่ต้องเขียนเป็น 1
+- Assignment ด้วย `=` ทำให้ Writable Bit อื่นเป็น 0
+- ตารางแสดงค่าผลลัพธ์สุดท้ายหลังรวม Bit จากทั้ง `UCSR0B` และ `UCSR0C`
+
+ไม่จำเป็นต้องเขียน `(0U << USBS0)` หรือ `(0U << UPM00)` ลงใน Code
+เพราะเลื่อนค่า 0 ไปกี่ตำแหน่งก็ยังได้ 0 และนำไป OR แล้วไม่เปลี่ยนผลลัพธ์
+จึงเขียนเฉพาะ Bit ที่ต้องเป็น 1 และอธิบายค่า 0 ที่เกิดขึ้นในตาราง
 
 8N1 จึงหมายถึง:
 
@@ -675,7 +708,7 @@ Device Address ของ Modbus ช่วยเลือกอุปกรณ์
 ก่อนเขียน byte ใหม่ต้องรอให้ USART Data Register พร้อม:
 
 ```c
-while ((UCSR0A & (1U << UDRE0)) == 0U) {
+while ((UCSR0A & (1U << UDRE0)) == 0U){
     /* รอให้ Transmit Register พร้อม */
 }
 UDR0 = (uint8_t)character;
@@ -695,15 +728,14 @@ UDR0 = (uint8_t)character;
 ฟังก์ชันส่งหนึ่งตัวอักษร:
 
 ```c
-static void uart_putchar(char character)
-{
-    if (character == '\n') {
-        while ((UCSR0A & (1U << UDRE0)) == 0U) {
+static void uart_putchar(char character){
+    if (character == '\n'){
+        while ((UCSR0A & (1U << UDRE0)) == 0U){
         }
         UDR0 = (uint8_t)'\r';
     }
 
-    while ((UCSR0A & (1U << UDRE0)) == 0U) {
+    while ((UCSR0A & (1U << UDRE0)) == 0U){
     }
     UDR0 = (uint8_t)character;
 }
@@ -715,9 +747,8 @@ Line Ending แบบ CRLF และขึ้นบรรทัดใหม่�
 ฟังก์ชันส่งข้อความ:
 
 ```c
-static void uart_puts(const char *text)
-{
-    while (*text != '\0') {
+static void uart_puts(const char *text){
+    while (*text != '\0'){
         uart_putchar(*text);
         text++;
     }
@@ -732,8 +763,7 @@ C String จบด้วย Null Terminator `\0` ฟังก์ชันจึ�
 ตรวจว่ามีข้อมูลเข้ามาหรือยัง:
 
 ```c
-static bool uart_rx_ready(void)
-{
+static bool uart_rx_ready(void){
     return (UCSR0A & (1U << RXC0)) != 0U;
 }
 ```
@@ -746,8 +776,7 @@ static bool uart_rx_ready(void)
 อ่านข้อมูลหนึ่ง byte:
 
 ```c
-static char uart_getchar(void)
-{
+static char uart_getchar(void){
     return (char)UDR0;
 }
 ```
@@ -755,17 +784,31 @@ static char uart_getchar(void)
 การอ่าน `UDR0` จะนำ byte ที่รับแล้วออกจาก Receive Buffer จากนั้น Hardware
 จะจัดการสถานะ `RXC0` ตามข้อมูลที่ยังเหลืออยู่
 
-EP02 ใช้ Polling:
+### Polling ใน EP02 คืออะไร
+
+Polling ในที่นี้หมายถึง CPU อ่าน Status Flag ภายใน `UCSR0A` ซ้ำ ๆ
+ไม่ใช่การส่งข้อความถามอุปกรณ์อีกฝั่งผ่านสาย UART
+
+EP02 ใช้ Polling สองรูปแบบ:
+
+| งาน | Status Flag | รูปแบบใน Code | ผลต่อ CPU |
+| --- | --- | --- | --- |
+| ส่งข้อมูล | `UDRE0` | `while` ตรวจซ้ำจนเป็น 1 | Blocking: CPU รออยู่ตรงนั้น |
+| รับข้อมูล | `RXC0` | `if` ตรวจหนึ่งครั้งในแต่ละรอบของ Main Loop | Non-blocking: ถ้ายังไม่มีข้อมูลจะไปทำรอบถัดไป |
+
+ตัวอย่าง Polling ฝั่งรับ:
 
 ```c
-if (uart_rx_ready()) {
+if (uart_rx_ready()){
     const char received = uart_getchar();
 }
 ```
 
-ข้อดีคือเห็นลำดับ Register ชัดและโค้ดเริ่มต้นง่าย ข้อแลกเปลี่ยนคือ `main()`
-ต้องกลับมาตรวจ `RXC0` บ่อย ๆ ตัวอย่างนี้ยังไม่ใช้ USART Interrupt และยังไม่
-ตรวจ Framing Error, Data OverRun หรือ Parity Error
+Interrupt Enable ได้แก่ `RXCIE0`, `TXCIE0` และ `UDRIE0` จึงเป็น 0
+ใน EP02 ข้อดีของ Polling คือเห็นลำดับ Register ชัดและ Code เริ่มต้นง่าย
+ข้อแลกเปลี่ยนคือ CPU ต้องกลับมาตรวจ Flag เอง โดยการส่งจะหยุดรอ `UDRE0`
+ส่วนการรับต้องกลับมาตรวจ `RXC0` ใน Main Loop บ่อย ๆ ตัวอย่างนี้ยังไม่ตรวจ
+Framing Error, Data OverRun หรือ Parity Error
 
 ## Chapter 8 — สร้าง Command Console
 
@@ -810,10 +853,9 @@ Null Terminator `\0`
 ฟังก์ชัน `text_equal()` เปรียบเทียบ C String ทีละตัวอักษร:
 
 ```c
-static bool text_equal(const char *left, const char *right)
-{
-    while ((*left != '\0') && (*right != '\0')) {
-        if (*left != *right) {
+static bool text_equal(const char *left, const char *right){
+    while ((*left != '\0') && (*right != '\0')){
+        if (*left != *right){
             return false;
         }
         left++;
@@ -827,10 +869,10 @@ static bool text_equal(const char *left, const char *right)
 Command Handler ควบคุม LED ที่ D13/PB5:
 
 ```c
-if (text_equal(command, "LED ON")) {
+if (text_equal(command, "LED ON")){
     PORTB |= (1U << PORTB5);
     uart_puts("LED is ON\n");
-} else if (text_equal(command, "LED OFF")) {
+} else if (text_equal(command, "LED OFF")){
     PORTB &= ~(1U << PORTB5);
     uart_puts("LED is OFF\n");
 }
@@ -858,8 +900,7 @@ PORTB &= ~(1U << PORTB5);
 #define UBRR_VALUE  ((F_CPU / (16UL * BAUD_RATE)) - 1UL)
 #define COMMAND_CAPACITY 16U
 
-static void uart_init(void)
-{
+static void uart_init(void){
     UBRR0H = (uint8_t)(UBRR_VALUE >> 8U);
     UBRR0L = (uint8_t)UBRR_VALUE;
 
@@ -868,43 +909,38 @@ static void uart_init(void)
     UCSR0C = (1U << UCSZ01) | (1U << UCSZ00); /* 8N1. */
 }
 
-static void uart_putchar(char character)
-{
-    if (character == '\n') {
-        while ((UCSR0A & (1U << UDRE0)) == 0U) {
+static void uart_putchar(char character){
+    if (character == '\n'){
+        while ((UCSR0A & (1U << UDRE0)) == 0U){
             /* รอให้ Transmit Register พร้อม */
         }
         UDR0 = (uint8_t)'\r';
     }
 
-    while ((UCSR0A & (1U << UDRE0)) == 0U) {
+    while ((UCSR0A & (1U << UDRE0)) == 0U){
         /* รอให้ Transmit Register พร้อม */
     }
     UDR0 = (uint8_t)character;
 }
 
-static void uart_puts(const char *text)
-{
-    while (*text != '\0') {
+static void uart_puts(const char *text){
+    while (*text != '\0'){
         uart_putchar(*text);
         text++;
     }
 }
 
-static bool uart_rx_ready(void)
-{
+static bool uart_rx_ready(void){
     return (UCSR0A & (1U << RXC0)) != 0U;
 }
 
-static char uart_getchar(void)
-{
+static char uart_getchar(void){
     return (char)UDR0;
 }
 
-static bool text_equal(const char *left, const char *right)
-{
-    while ((*left != '\0') && (*right != '\0')) {
-        if (*left != *right) {
+static bool text_equal(const char *left, const char *right){
+    while ((*left != '\0') && (*right != '\0')){
+        if (*left != *right){
             return false;
         }
         left++;
@@ -914,27 +950,25 @@ static bool text_equal(const char *left, const char *right)
     return *left == *right;
 }
 
-static void handle_command(const char *command)
-{
-    if (text_equal(command, "LED ON")) {
+static void handle_command(const char *command){
+    if (text_equal(command, "LED ON")){
         PORTB |= (1U << PORTB5);
         uart_puts("LED is ON\n");
-    } else if (text_equal(command, "LED OFF")) {
+    } else if (text_equal(command, "LED OFF")){
         PORTB &= ~(1U << PORTB5);
         uart_puts("LED is OFF\n");
-    } else if (text_equal(command, "STATUS?")) {
-        if ((PORTB & (1U << PORTB5)) != 0U) {
+    } else if (text_equal(command, "STATUS?")){
+        if ((PORTB & (1U << PORTB5)) != 0U){
             uart_puts("LED status: ON\n");
-        } else {
+        } else{
             uart_puts("LED status: OFF\n");
         }
-    } else if (*command != '\0') {
+    } else if (*command != '\0'){
         uart_puts("Unknown command\n");
     }
 }
 
-int main(void)
-{
+int main(void){
     char command[COMMAND_CAPACITY];
     uint8_t length = 0U;
 
@@ -945,23 +979,23 @@ int main(void)
     uart_puts("UART command ready\n");
     uart_puts("Commands: LED ON, LED OFF, STATUS?\n> ");
 
-    while (1) {
-        if (uart_rx_ready()) {
+    while (1){
+        if (uart_rx_ready()){
             const char received = uart_getchar();
 
-            if (received == '\r') {
+            if (received == '\r'){
                 continue;
             }
 
-            if (received == '\n') {
+            if (received == '\n'){
                 command[length] = '\0';
                 handle_command(command);
                 length = 0U;
                 uart_puts("> ");
-            } else if (length < (COMMAND_CAPACITY - 1U)) {
+            } else if (length < (COMMAND_CAPACITY - 1U)){
                 command[length] = received;
                 length++;
-            } else {
+            } else{
                 length = 0U;
                 uart_puts("\nCommand too long\n> ");
             }
@@ -1039,7 +1073,7 @@ picocom --echo --imap crcrlf -b 9600 /dev/ttyACM0
 
 | งาน | Arduino Framework | Native AVR C ใน EP02 |
 | --- | --- | --- |
-| เริ่ม Serial | `Serial.begin(9600)` | ตั้ง `UBRR0x`, `UCSR0x` |
+| เริ่ม Serial | `Serial.begin(9600)` | ตั้ง `UBRR0H/L` และ `UCSR0A/B/C` |
 | ตรวจข้อมูลเข้า | `Serial.available()` | ตรวจ `RXC0` |
 | อ่านหนึ่ง byte | `Serial.read()` | อ่าน `UDR0` |
 | ส่งหนึ่ง byte | `Serial.write()` | รอ `UDRE0` แล้วเขียน `UDR0` |
@@ -1070,8 +1104,7 @@ Arduino API เหมาะเมื่อเน้นพัฒนา Applicatio
 - [คู่มือการ Flash](../docs/flashing-guide.md) — แก้ปัญหา Port และ `avrdude`
 - [Register พื้นฐาน](../docs/register-basics.md) — ทบทวน Register และ Bit Mask
 - [Arduino Uno Pin Mapping](../docs/arduino-uno-pin-mapping.md) — แปลง D0/D1/D13 เป็นขา MCU
-- [ATmega328P Datasheet](https://www.microchip.com/en-us/product/atmega328p) — USART0 Register และ Baud Rate
-- [ATmega328P USART Frame Formats — Section 19.4](https://ww1.microchip.com/downloads/en/DeviceDoc/Atmel-7810-Automotive-Microcontrollers-ATmega328P_Datasheet.pdf) — Parity เป็น Optional และอยู่ก่อน Stop เฉพาะเมื่อเปิดใช้
+- [ATmega328P Datasheet DS40002061B](https://www.microchip.com/en-us/product/atmega328p) — USART0 อยู่ใน Chapter 20, Frame Formats อยู่ใน Section 20.5 และ Register Description อยู่ใน Section 20.11
 - [picocom Manual](https://manpages.debian.org/testing/picocom/picocom.1.en.html) — Local Echo และ Character Mapping
 - [MODBUS Serial Line Protocol and Implementation Guide](https://www.modbus.org/docs/Modbus_over_serial_line_V1_02.pdf) — การวาง Modbus Serial ที่ L2 และ RS485 ที่ L1
 - [MODBUS Application Protocol Specification](https://modbus.org/docs/Modbus_Application_Protocol_V1_1b3.pdf) — Modbus Application Protocol ที่ L7
