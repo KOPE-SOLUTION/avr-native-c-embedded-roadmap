@@ -832,7 +832,7 @@ Null Terminator `\0`
   -> ถ้าเป็น LF ให้ปิดท้าย String ด้วย \0
   -> นำ String ไปเทียบกับคำสั่ง
   -> ถ้าเป็นตัวอักษรทั่วไปให้เก็บลง Buffer
-  -> ถ้า Buffer เต็มให้ยกเลิกคำสั่งและแจ้ง Command too long
+  -> ถ้า Buffer เต็มให้ล้าง Buffer และแจ้ง Command too long
 ```
 
 โปรแกรมรองรับ LF และ CRLF:
@@ -1006,18 +1006,150 @@ int main(void){
 
 ซอร์สที่ใช้ Build จริง: [src/main.c](src/main.c)
 
-### ลำดับการทำงานของโปรแกรม
+### อ่าน `main()` ทีละช่วง
 
-1. C runtime เรียก `main()` หลัง MCU Reset
-2. ตั้ง D13/PB5 เป็น Output และปิด LED
-3. คำนวณ `UBRR_VALUE` จาก Clock และ Baud Rate ตอน Compile
-4. ตั้ง USART0 เป็น 9600 baud, 8N1
-5. เปิด Receiver และ Transmitter
-6. ส่งข้อความต้อนรับและรายการคำสั่ง
-7. Poll `RXC0` เพื่อรอข้อมูล
-8. เก็บอักขระลง Buffer จนพบ LF
-9. เปรียบเทียบคำสั่งและควบคุม LED
-10. ส่งผลลัพธ์กลับไปยัง Serial Terminal แล้วรอคำสั่งถัดไป
+`main()` คือ Entry Point ที่ C Runtime เรียกหลัง MCU Reset คำว่า `void`
+หมายถึงฟังก์ชันนี้ไม่รับ Argument ส่วน Return Type เป็น `int` ตามรูปแบบของ
+ภาษา C แต่ Firmware นี้จะไม่เดินทางไปถึง `return` เพราะทำงานอยู่ใน
+Infinite Loop ตลอดเวลา
+
+#### 1. สร้าง Buffer และตัวแปรบอกตำแหน่ง
+
+```c
+char command[COMMAND_CAPACITY];
+uint8_t length = 0U;
+```
+
+- `command` คือ Array ใน SRAM สำหรับสะสมอักขระที่รับจาก UART
+- `COMMAND_CAPACITY` มีค่า 16 จึงมีตำแหน่ง `command[0]` ถึง `command[15]`
+- `length` ไม่ใช่ขนาดของ Array หรือ Pointer แต่เป็น Index ของตำแหน่งว่างถัดไป
+- `0U` คือเลขศูนย์ชนิด Unsigned และทำให้เริ่มเขียนที่ `command[0]`
+
+ตอนเริ่มต้น `command` ยังไม่ถือเป็น C String ที่พร้อมใช้งาน เพราะยังไม่มี
+Null Terminator `\0` โปรแกรมจะเติมให้เมื่อรับ LF ซึ่งเป็นจุดจบคำสั่ง
+
+#### 2. เตรียม LED และ USART0
+
+```c
+DDRB |= (1U << DDB5);
+PORTB &= ~(1U << PORTB5);
+uart_init();
+```
+
+- บรรทัดแรก Set `DDB5` เป็น 1 เพื่อกำหนด PB5 หรือ D13 เป็น Output
+- บรรทัดที่สอง Clear `PORTB5` เป็น 0 เพื่อให้ LED เริ่มต้นในสถานะปิด
+- `uart_init()` ตั้ง Baud Rate 9600, Frame Format 8N1 และเปิด RX/TX
+
+#### 3. ส่งข้อความเริ่มต้น
+
+```c
+uart_puts("UART command ready\n");
+uart_puts("Commands: LED ON, LED OFF, STATUS?\n> ");
+```
+
+ข้อความแรกแจ้งว่า Firmware พร้อม ส่วนข้อความที่สองแสดงรายการคำสั่งและ
+เครื่องหมาย `> ` ซึ่งทำหน้าที่เป็น Prompt บอกผู้ใช้ว่าสามารถพิมพ์คำสั่งได้
+
+#### 4. วนตรวจข้อมูลด้วย Polling
+
+```c
+while (1){
+    if (uart_rx_ready()){
+        const char received = uart_getchar();
+```
+
+- `while (1)` เป็น Infinite Loop เพราะ Embedded Firmware ต้องทำงานต่อเนื่อง
+- `uart_rx_ready()` ตรวจ `RXC0`; ถ้ายังไม่มีข้อมูล เงื่อนไขเป็น False
+  แล้วเริ่ม Loop รอบใหม่
+- เมื่อมีข้อมูล `uart_getchar()` จะอ่านหนึ่ง byte จาก `UDR0`
+- `received` เป็นตัวแปรชั่วคราวสำหรับ byte นั้น ส่วน `const` ป้องกันไม่ให้
+  Code ในรอบเดียวกันเปลี่ยนค่าที่อ่านมาโดยไม่ตั้งใจ
+
+#### 5. แยก CR และ LF
+
+```c
+if (received == '\r'){
+    continue;
+}
+```
+
+`\r` คือ Carriage Return หรือ CR หาก Terminal ส่ง Enter แบบ CRLF
+โปรแกรมจะได้รับ `\r` ก่อนแล้วจึงได้รับ `\n` บรรทัด `continue` จะข้าม Code
+ที่เหลือในรอบปัจจุบันและกลับไปเริ่ม `while (1)` รอบใหม่เพื่อรอ byte ถัดไป
+
+```c
+if (received == '\n'){
+    command[length] = '\0';
+    handle_command(command);
+    length = 0U;
+    uart_puts("> ");
+}
+```
+
+`\n` คือ Line Feed หรือ LF และถูกใช้เป็นเครื่องหมายจบคำสั่ง:
+
+1. เขียน `\0` ที่ตำแหน่งว่างถัดไปเพื่อเปลี่ยนข้อมูลใน Buffer ให้เป็น C String
+2. ส่ง String ไปให้ `handle_command()` เปรียบเทียบกับคำสั่งที่รองรับ
+3. Reset `length` เป็น 0 เพื่อใช้ Buffer รับคำสั่งรอบใหม่
+4. แสดง Prompt `> ` อีกครั้ง
+
+#### 6. เก็บอักขระทั่วไปโดยไม่ให้ Buffer ล้น
+
+```c
+else if (length < (COMMAND_CAPACITY - 1U)){
+    command[length] = received;
+    length++;
+}
+```
+
+`COMMAND_CAPACITY - 1U` เท่ากับ 15 โปรแกรมจึงอนุญาตให้เก็บอักขระใน
+ตำแหน่ง 0 ถึง 14 รวม 15 ตัว และสงวน `command[15]` ไว้สำหรับ `\0`
+
+ลำดับของสองบรรทัดใน Block นี้สำคัญ:
+
+```text
+command[length] = received;  เก็บอักขระในตำแหน่งว่างปัจจุบัน
+length++;                    เลื่อนไปยังตำแหน่งว่างถัดไป
+```
+
+#### 7. จัดการคำสั่งที่ยาวเกิน Buffer
+
+```c
+else{
+    length = 0U;
+    uart_puts("\nCommand too long\n> ");
+}
+```
+
+เมื่อมีอักขระตัวที่ 16 เข้ามาก่อน LF เงื่อนไขพื้นที่ว่างจะเป็น False โปรแกรม
+จึงล้างความยาวของคำสั่งปัจจุบันและแจ้ง Error โดยไม่เขียนเกินขอบเขต Array
+
+> ตัวอย่างนี้เป็น Console แบบเริ่มต้น หลังเกิด `Command too long` อักขระที่
+> ตามมาก่อน LF สามารถถูกเก็บเป็นคำสั่งใหม่ได้ หากต้องการ Parser ที่เข้มงวด
+> ควรเพิ่มสถานะสำหรับทิ้งอักขระทั้งหมดจนกว่าจะพบ LF
+
+### ตัวอย่างเมื่อพิมพ์ `LED ON` แล้วกด Enter
+
+| Byte ที่รับ | การทำงาน | ค่า `length` หลังทำงาน | ข้อมูลที่สะสม |
+| --- | --- | ---: | --- |
+| `L` | เก็บที่ `command[0]` | 1 | `L` |
+| `E` | เก็บที่ `command[1]` | 2 | `LE` |
+| `D` | เก็บที่ `command[2]` | 3 | `LED` |
+| Space | เก็บที่ `command[3]` | 4 | `LED ` |
+| `O` | เก็บที่ `command[4]` | 5 | `LED O` |
+| `N` | เก็บที่ `command[5]` | 6 | `LED ON` |
+| CR | ข้ามด้วย `continue` | 6 | `LED ON` |
+| LF | เขียน `\0` ที่ `command[6]` แล้วเรียก `handle_command()` | 0 | เริ่มรับคำสั่งใหม่ |
+
+ก่อนเรียก `handle_command()` ข้อมูลใน Memory จึงมีรูปแบบ:
+
+```text
+ตำแหน่ง:  [0] [1] [2] [3] [4] [5] [6]
+ข้อมูล:     L   E   D       O   N  \0
+```
+
+`handle_command()` จึงมองเห็น C String `"LED ON"` ได้อย่างถูกต้อง เปิด LED,
+ตอบกลับ `LED is ON` แล้ว `main()` แสดง Prompt เพื่อรอคำสั่งถัดไป
 
 ## Chapter 10 — Build, Flash และทดสอบ
 
