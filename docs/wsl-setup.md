@@ -334,8 +334,12 @@ Port เดียวกัน รวมทั้งถอดวงจรที�
 EP ที่มี UART ใช้ค่าเริ่มต้น 9600 baud:
 
 ```sh
-picocom -b 9600 /dev/ttyUSB0
+picocom --echo --omap crcrlf -b 9600 /dev/ttyUSB0
 ```
+
+`--echo` ทำให้เห็นอักขระที่พิมพ์ และ `--omap crcrlf` แปลง CR จากปุ่ม Enter
+เป็น CR+LF ก่อนส่งไปยัง Firmware อย่าใช้ `--imap` แทน เพราะตัวเลือกนั้น
+แปลงข้อมูลที่อ่านจากบอร์ดก่อนแสดงบน Terminal
 
 หรือเปลี่ยนเป็น `/dev/ttyACM0` ตาม Port จริง
 

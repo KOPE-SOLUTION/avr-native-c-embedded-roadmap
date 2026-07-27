@@ -1181,14 +1181,21 @@ make flash EP=EP02_UART PORT=/dev/ttyACM0
 การสาธิต และแปลง Enter จาก CR เป็น CRLF:
 
 ```sh
-picocom --echo --imap crcrlf -b 9600 /dev/ttyUSB0
+picocom --echo --omap crcrlf -b 9600 /dev/ttyUSB0
 ```
 
 ถ้าใช้ `/dev/ttyACM0`:
 
 ```sh
-picocom --echo --imap crcrlf -b 9600 /dev/ttyACM0
+picocom --echo --omap crcrlf -b 9600 /dev/ttyACM0
 ```
+
+ตัวเลือกที่ใช้มีความหมายดังนี้:
+
+- `--echo` แสดงอักขระที่พิมพ์บน Terminal
+- `--omap crcrlf` แปลง CR จากปุ่ม Enter เป็น CR+LF ก่อนส่งไปยังบอร์ด
+- `--imap` ใช้แปลงข้อมูลที่อ่านกลับมาจากบอร์ด จึงไม่ควรใช้แทน `--omap`
+  สำหรับกรณีนี้ เพราะอาจทำให้ Output มีบรรทัดว่างซ้ำและ Firmware ยังไม่ได้ LF
 
 ออกจาก `picocom` ด้วย `Ctrl+A` แล้วกด `Ctrl+X`
 

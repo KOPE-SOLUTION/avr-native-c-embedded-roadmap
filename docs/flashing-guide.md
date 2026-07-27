@@ -156,8 +156,12 @@ EP02, EP06, EP07 และ EP08 ใช้ USART0 ด้วยค่า:
 เปิด Serial Terminal ใน Ubuntu:
 
 ```sh
-picocom -b 9600 /dev/ttyUSB0
+picocom --echo --omap crcrlf -b 9600 /dev/ttyUSB0
 ```
+
+`--omap crcrlf` แปลง CR จากปุ่ม Enter เป็น CR+LF ก่อนส่งไปยังบอร์ด
+ส่วน `--imap` แปลงข้อมูลในทิศทางจากบอร์ดมายัง Terminal จึงไม่ใช้สำหรับ
+กำหนด Line Ending ของคำสั่งที่พิมพ์
 
 เปลี่ยน Port เป็น `/dev/ttyACM0` หากระบบแสดงชื่อนั้น ออกจาก `picocom`
 ด้วย `Ctrl+A` แล้ว `Ctrl+X` และปิดก่อน Flash Firmware ครั้งต่อไป
